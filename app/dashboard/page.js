@@ -9,11 +9,12 @@ const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const TITLE = 'Daakyehene Foundation feeding payment';
 
-function FeedingPlan({ userId, plan, reload }) {
+function FeedingPlan({ userId, plan, reload, phone }) {
   const [edit, setEdit] = useState(!plan);
   const [freq, setFreq] = useState(plan?.frequency || 'monthly');
   const [start, setStart] = useState(plan?.due_date || '');
   const [amount, setAmount] = useState(plan?.amount || '');
+  const [ph, setPh] = useState(phone || '');
   const [err, setErr] = useState('');
 
   async function save(e) {
@@ -23,6 +24,8 @@ function FeedingPlan({ userId, plan, reload }) {
       ? await supabase.from('due_dates').update(body).eq('id', plan.id)
       : await supabase.from('due_dates').insert({ ...body, user_id: userId });
     if (error) return setErr(error.message);
+    const pr = await supabase.from('profiles').update({ phone: ph.trim() }).eq('id', userId);
+    if (pr.error) return setErr(pr.error.message);
     setErr(''); setEdit(false); reload();
   }
   async function remove() {
@@ -40,6 +43,7 @@ function FeedingPlan({ userId, plan, reload }) {
         <p className="plan-big">{money(plan.amount)} every {plan.frequency === 'weekly' ? 'week' : 'month'}</p>
         <p>{next ? `Next payment: ${fmt(next)} (${daysUntil(next)} ${daysUntil(next) === 1 ? 'day' : 'days'})` : 'Your start date has passed. Tap Change to set a new one.'}</p>
         <p>This repeats every {plan.frequency === 'weekly' ? 'week' : 'month'} until you remove it. Add it to your calendar once and it repeats by itself and reminds you the day before.</p>
+        <p>Reminders go to: <b>{phone || 'no phone saved'}</b>. Tap Change to update it.</p>
         <p className="note">Changed your plan? Delete the old calendar event and add the new one, because calendars don't update by themselves.</p>
         <p>
           <a className="btn" href={googleLink(TITLE, plan.due_date, rule)} target="_blank" rel="noreferrer">Add to Google Calendar</a>{' '}
@@ -55,7 +59,7 @@ function FeedingPlan({ userId, plan, reload }) {
   return (
     <form className="card" onSubmit={save}>
       <h2>Set up your feeding payment</h2>
-      <p>Three quick steps. You only do this once.</p>
+      <p>Four quick steps. You only do this once.</p>
       <label>1. How often will you pay?</label>
       <div className="choice">
         <button type="button" className={freq === 'weekly' ? 'on' : ''} onClick={() => setFreq('weekly')}>Every week</button>
@@ -65,6 +69,8 @@ function FeedingPlan({ userId, plan, reload }) {
       <input id="start" type="date" required value={start} onChange={(e) => setStart(e.target.value)} />
       <label htmlFor="amt">3. How much each time? (GH₵)</label>
       <input id="amt" type="number" min="1" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} />
+      <label htmlFor="ph">4. Your phone number (for payment reminders)</label>
+      <input id="ph" type="tel" required placeholder="e.g. 0241234567" value={ph} onChange={(e) => setPh(e.target.value)} />
       {err && <div className="msg err">{err}</div>}
       <p>
         <button className="btn">Save my feeding plan</button>{' '}
@@ -201,7 +207,7 @@ export default function Dashboard() {
           <Payments userId={user} rows={pays} reload={load} />
         </>)}
 
-        {tab === 'plan' && <FeedingPlan key={plan?.id || 'new'} userId={user} plan={plan} reload={load} />}
+        {tab === 'plan' && <FeedingPlan key={plan?.id || 'new'} userId={user} plan={plan} reload={load} phone={p.phone} />}
 
         {tab === 'me' && (
           <form className="card" onSubmit={saveProfile}>
