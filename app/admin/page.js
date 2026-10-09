@@ -43,11 +43,88 @@ function RemindLinks({ s }) {
   );
 }
 
+
+function EditPanel({ s, onClose, onSaved }) {
+  const pl = s.rawPlan;
+  const [f, setF] = useState({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '', fees_total: s.fees_total ?? 0 });
+  const [freq, setFreq] = useState(pl?.frequency || 'monthly');
+  const [start, setStart] = useState(pl?.due_date || '');
+  const [amount, setAmount] = useState(pl?.amount ?? '');
+  const [net, setNet] = useState(pl?.payment_network || '');
+  const [extra, setExtra] = useState('');
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  async function save(e) {
+    e.preventDefault();
+    const a = await supabase.from('profiles').update({ full_name: f.full_name, level: f.level, phone: f.phone, fees_total: Number(f.fees_total) || 0 }).eq('id', s.id);
+    if (a.error) return setErr(a.error.message);
+    if (start && amount !== '') {
+      const body = { frequency: freq, due_date: start, amount: Number(amount), repeat_monthly: freq === 'monthly', payment_network: net || null, note: 'Feeding' };
+      const b = pl ? await supabase.from('due_dates').update(body).eq('id', pl.id) : await supabase.from('due_dates').insert({ ...body, user_id: s.id });
+      if (b.error) return setErr(b.error.message);
+    }
+    setErr(''); setSaved(true); onSaved();
+  }
+
+  const first = (f.full_name || 'student').split(' ')[0];
+  const planLine = start && amount !== ''
+    ? `Your feeding plan is GH₵ ${Number(amount).toLocaleString()} every ${freq === 'weekly' ? 'week' : 'month'}${net ? ' by ' + net : ' by Mobile Money'}, starting ${fmtShort(new Date(start + 'T00:00:00Z'))}.`
+    : '';
+  const feesLine = Number(f.fees_total) ? ` Your total fees are GH₵ ${Number(f.fees_total).toLocaleString()}.` : '';
+  const text = `Hello ${first}, the Daakyehene Foundation has updated your details. ${planLine}${feesLine}${extra ? ' ' + extra : ''} You can see everything on the student portal. Please pay on time and upload your receipt. Thank you.`.replace(/\s+/g, ' ');
+  const phone = intl(f.phone);
+
+  return (
+    <section className="card edit-panel">
+      <h2>Edit {s.full_name || s.email}</h2>
+      <form onSubmit={save}>
+        <div className="grid">
+          <div><label htmlFor="ef1">Full name</label><input id="ef1" value={f.full_name} onChange={set('full_name')} /></div>
+          <div><label htmlFor="ef2">Level</label><input id="ef2" value={f.level} onChange={set('level')} /></div>
+          <div><label htmlFor="ef3">Phone</label><input id="ef3" type="tel" value={f.phone} onChange={set('phone')} /></div>
+          <div><label htmlFor="ef4">Total fees (GH₵)</label><input id="ef4" type="number" min="0" value={f.fees_total} onChange={set('fees_total')} /></div>
+        </div>
+        <h3 style={{ marginTop: '1rem' }}>Feeding plan</h3>
+        <div className="choice">
+          <button type="button" className={freq === 'weekly' ? 'on' : ''} onClick={() => setFreq('weekly')}>Every week</button>
+          <button type="button" className={freq === 'monthly' ? 'on' : ''} onClick={() => setFreq('monthly')}>Every month</button>
+        </div>
+        <div className="grid">
+          <div><label htmlFor="ef5">First payment date</label><input id="ef5" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
+          <div><label htmlFor="ef6">Amount each time (GH₵)</label><input id="ef6" type="number" min="1" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div><label htmlFor="ef7">MoMo network</label>
+            <select id="ef7" value={net} onChange={(e) => setNet(e.target.value)}>
+              <option value="">Choose…</option><option>MTN MoMo</option><option>Telecel Cash</option><option>AT Money</option>
+            </select></div>
+        </div>
+        <label htmlFor="ef8">Extra note to the student (optional)</label>
+        <input id="ef8" placeholder="e.g. Payments are due before 6pm." value={extra} onChange={(e) => setExtra(e.target.value)} />
+        {err && <div className="msg err">{err}</div>}
+        {saved && <div className="msg">Saved. Now send the student what you decided:</div>}
+        <p>
+          <button className="btn">Save changes</button>{' '}
+          <button type="button" className="btn alt" onClick={onClose}>Close</button>
+        </p>
+      </form>
+      {saved && (
+        <p className="remind">
+          {s.email && <a className="btn sm" href={`mailto:${s.email}?subject=${encodeURIComponent('Your feeding plan – Daakyehene Foundation')}&body=${encodeURIComponent(text)}`}>Email student</a>}{' '}
+          {phone && <a className="btn alt sm" href={`sms:${phone}?body=${encodeURIComponent(text)}`}>SMS</a>}{' '}
+          {phone && <a className="btn alt sm" href={`https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">WhatsApp</a>}
+        </p>
+      )}
+    </section>
+  );
+}
+
 export default function Admin() {
   const router = useRouter();
   const [rows, setRows] = useState(null);
   const [meId, setMeId] = useState(null);
   const [note, setNote] = useState('');
+  const [editing, setEditing] = useState(null);
 
   const load = useCallback(() => {
     (async () => {
@@ -56,7 +133,7 @@ export default function Admin() {
       const [a, b, c] = await Promise.all([
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('payments').select('user_id, amount, paid_on'),
-        supabase.from('due_dates').select('user_id, due_date, frequency, amount, payment_network'),
+        supabase.from('due_dates').select('*'),
       ]);
       const me = (a.data || []).find((x) => x.id === data.session.user.id);
       if (!me?.is_admin) return router.replace('/dashboard');
@@ -70,7 +147,7 @@ export default function Admin() {
       (c.data || []).forEach((x) => { plans[x.user_id] = x; });
       setRows((a.data || []).map((s) => {
         const pl = plans[s.id];
-        const out = { ...s, paid: paid[s.id] || 0, plan: '', next: null, days: null, lastDue: null, status: '', amount: pl?.amount };
+        const out = { ...s, rawPlan: pl || null, paid: paid[s.id] || 0, plan: '', next: null, days: null, lastDue: null, status: '', amount: pl?.amount };
         if (pl) {
           out.plan = `GH₵ ${pl.amount ?? ''} ${pl.frequency}${pl.payment_network ? ' · ' + pl.payment_network : ''}`;
           out.next = nextOccurrence(pl.due_date, pl.frequency);
@@ -116,6 +193,9 @@ export default function Admin() {
     <>
       <div className="top"><b>Admin · Students</b><Link href="/dashboard">My dashboard</Link></div>
       <div className="wrap">
+        {editing && rows.find((x) => x.id === editing) && (
+          <EditPanel key={editing} s={rows.find((x) => x.id === editing)} onClose={() => setEditing(null)} onSaved={load} />
+        )}
         <section className="card">
           <h2>Reminders to send</h2>
           <p>{soon.length} due today or tomorrow · {overdue.length} overdue. Tap a button to open the message already written, then press send.</p>
@@ -138,13 +218,14 @@ export default function Admin() {
           <p><button className="btn" onClick={csv}>Download CSV</button></p>
           {note && <div className="msg">{note}</div>}
           <table>
-            <thead><tr><th>Name</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th><th>Access</th></tr></thead>
+            <thead><tr><th>Name</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th><th>Access</th><th>Details</th></tr></thead>
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id}><td>{name(s)}</td><td>{s.level}</td><td>{s.phone}</td><td>{s.birthday}</td>
                   <td>{s.fees_total}</td><td>{s.paid}</td><td>{Math.max(0, s.fees_total - s.paid)}</td>
                   <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td>
-                  <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td></tr>
+                  <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
+                  <td><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
               ))}
             </tbody>
           </table>
