@@ -7,6 +7,7 @@ import { nextOccurrence, nextBirthday, daysUntil, googleLink, downloadIcs, ruleF
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const NETWORKS = ['MTN MoMo', 'Telecel Cash', 'AT Money'];
 const TITLE = 'Daakyehene Foundation feeding payment';
 
 function FeedingPlan({ userId, plan, reload, phone }) {
@@ -14,12 +15,14 @@ function FeedingPlan({ userId, plan, reload, phone }) {
   const [freq, setFreq] = useState(plan?.frequency || 'monthly');
   const [start, setStart] = useState(plan?.due_date || '');
   const [amount, setAmount] = useState(plan?.amount || '');
+  const [net, setNet] = useState(plan?.payment_network || '');
   const [ph, setPh] = useState(phone || '');
   const [err, setErr] = useState('');
 
   async function save(e) {
     e.preventDefault();
-    const body = { frequency: freq, due_date: start, amount: Number(amount), repeat_monthly: freq === 'monthly', note: 'Feeding' };
+    if (!net) return setErr('Please choose your Mobile Money network.');
+    const body = { payment_network: net, frequency: freq, due_date: start, amount: Number(amount), repeat_monthly: freq === 'monthly', note: 'Feeding' };
     const { error } = plan
       ? await supabase.from('due_dates').update(body).eq('id', plan.id)
       : await supabase.from('due_dates').insert({ ...body, user_id: userId });
@@ -43,6 +46,7 @@ function FeedingPlan({ userId, plan, reload, phone }) {
         <p className="plan-big">{money(plan.amount)} every {plan.frequency === 'weekly' ? 'week' : 'month'}</p>
         <p>{next ? `Next payment: ${fmt(next)} (${daysUntil(next)} ${daysUntil(next) === 1 ? 'day' : 'days'})` : 'Your start date has passed. Tap Change to set a new one.'}</p>
         <p>This repeats every {plan.frequency === 'weekly' ? 'week' : 'month'} until you remove it. Add it to your calendar once and it repeats by itself and reminds you the day before.</p>
+        <p>Pay by Mobile Money: <b>{plan.payment_network || 'network not chosen'}</b></p>
         <p>Reminders go to: <b>{phone || 'no phone saved'}</b>. Tap Change to update it.</p>
         <p className="note">Changed your plan? Delete the old calendar event and add the new one, because calendars don't update by themselves.</p>
         <p>
@@ -59,7 +63,7 @@ function FeedingPlan({ userId, plan, reload, phone }) {
   return (
     <form className="card" onSubmit={save}>
       <h2>Set up your feeding payment</h2>
-      <p>Four quick steps. You only do this once.</p>
+      <p>We accept <b>Mobile Money (MoMo) only</b>. Five quick steps. You only do this once.</p>
       <label>1. How often will you pay?</label>
       <div className="choice">
         <button type="button" className={freq === 'weekly' ? 'on' : ''} onClick={() => setFreq('weekly')}>Every week</button>
@@ -69,7 +73,11 @@ function FeedingPlan({ userId, plan, reload, phone }) {
       <input id="start" type="date" required value={start} onChange={(e) => setStart(e.target.value)} />
       <label htmlFor="amt">3. How much each time? (GH₵)</label>
       <input id="amt" type="number" min="1" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} />
-      <label htmlFor="ph">4. Your phone number (for payment reminders)</label>
+      <label>4. Which Mobile Money network will you pay with?</label>
+      <div className="choice three">
+        {NETWORKS.map((n) => <button type="button" key={n} className={net === n ? 'on' : ''} onClick={() => setNet(n)}>{n}</button>)}
+      </div>
+      <label htmlFor="ph">5. Your MoMo phone number (we send reminders here too)</label>
       <input id="ph" type="tel" required placeholder="e.g. 0241234567" value={ph} onChange={(e) => setPh(e.target.value)} />
       {err && <div className="msg err">{err}</div>}
       <p>

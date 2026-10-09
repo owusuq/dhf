@@ -19,6 +19,7 @@ create table public.due_dates (
   repeat_monthly boolean not null default false,
   frequency text default 'monthly',
   amount numeric,
+  payment_network text,
   note text default '',
   created_at timestamptz default now()
 );

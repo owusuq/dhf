@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
@@ -46,18 +46,21 @@ function RemindLinks({ s }) {
 export default function Admin() {
   const router = useRouter();
   const [rows, setRows] = useState(null);
+  const [meId, setMeId] = useState(null);
+  const [note, setNote] = useState('');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return router.replace('/');
       const [a, b, c] = await Promise.all([
         supabase.from('profiles').select('*').order('full_name'),
         supabase.from('payments').select('user_id, amount, paid_on'),
-        supabase.from('due_dates').select('user_id, due_date, frequency, amount'),
+        supabase.from('due_dates').select('user_id, due_date, frequency, amount, payment_network'),
       ]);
       const me = (a.data || []).find((x) => x.id === data.session.user.id);
       if (!me?.is_admin) return router.replace('/dashboard');
+      setMeId(me.id);
       const paid = {}, pays = {};
       (b.data || []).forEach((x) => {
         paid[x.user_id] = (paid[x.user_id] || 0) + Number(x.amount);
@@ -69,7 +72,7 @@ export default function Admin() {
         const pl = plans[s.id];
         const out = { ...s, paid: paid[s.id] || 0, plan: '', next: null, days: null, lastDue: null, status: '', amount: pl?.amount };
         if (pl) {
-          out.plan = `GH₵ ${pl.amount ?? ''} ${pl.frequency}`;
+          out.plan = `GH₵ ${pl.amount ?? ''} ${pl.frequency}${pl.payment_network ? ' · ' + pl.payment_network : ''}`;
           out.next = nextOccurrence(pl.due_date, pl.frequency);
           out.days = out.next ? daysUntil(out.next) : null;
           out.lastDue = previousOccurrence(pl.due_date, pl.frequency);
@@ -85,6 +88,15 @@ export default function Admin() {
       }));
     })();
   }, [router]);
+  useEffect(() => { load(); }, [load]);
+
+  async function toggleAdmin(s) {
+    const make = !s.is_admin;
+    if (!confirm(make ? `Make ${s.full_name || s.email} an admin? They will see all students.` : `Remove admin access from ${s.full_name || s.email}?`)) return;
+    const { error } = await supabase.rpc('set_admin', { target: s.id, flag: make });
+    setNote(error ? error.message : (make ? 'Admin added.' : 'Admin removed.'));
+    load();
+  }
 
   function csv() {
     const head = 'Name,Email,Phone,Level,Birthday,Option,Fees,Paid,Balance,Feeding plan,Next payment';
@@ -124,13 +136,15 @@ export default function Admin() {
 
         <div className="card scroll">
           <p><button className="btn" onClick={csv}>Download CSV</button></p>
+          {note && <div className="msg">{note}</div>}
           <table>
-            <thead><tr><th>Name</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th></tr></thead>
+            <thead><tr><th>Name</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th><th>Access</th></tr></thead>
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id}><td>{name(s)}</td><td>{s.level}</td><td>{s.phone}</td><td>{s.birthday}</td>
                   <td>{s.fees_total}</td><td>{s.paid}</td><td>{Math.max(0, s.fees_total - s.paid)}</td>
-                  <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td></tr>
+                  <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td>
+                  <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td></tr>
               ))}
             </tbody>
           </table>

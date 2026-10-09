@@ -105,3 +105,6 @@ tbody tr:hover,tr:hover td{background:#f5f8fb}
 .plan-big{font-family:var(--display),system-ui,sans-serif;font-size:clamp(1.3rem,5vw,1.8rem);color:var(--green);margin:.2rem 0 .6rem}
 .note{font-size:.88rem;background:#fff7e0;border-left:4px solid var(--gold);padding:.5rem .7rem;border-radius:8px}
 .late{color:var(--red);font-weight:600}.remind{display:inline-flex;flex-wrap:wrap;gap:.4rem}
+.admin-go{display:block;background:var(--gold);border-color:var(--gold);color:var(--ink);margin:1rem 0}
+.choice.three{grid-template-columns:repeat(3,1fr)}
+@media (max-width:420px){.choice.three{grid-template-columns:1fr}}
