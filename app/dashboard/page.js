@@ -38,7 +38,7 @@ function FeedingPlan({ userId, plan, reload }) {
       <section className="card">
         <h2>Your feeding plan</h2>
         <p className="plan-big">{money(plan.amount)} every {plan.frequency === 'weekly' ? 'week' : 'month'}</p>
-        <p>{next ? `Next payment: ${fmt(next)} (${daysUntil(next)} days)` : 'Your start date has passed. Tap Change to set a new one.'}</p>
+        <p>{next ? `Next payment: ${fmt(next)} (${daysUntil(next)} ${daysUntil(next) === 1 ? 'day' : 'days'})` : 'Your start date has passed. Tap Change to set a new one.'}</p>
         <p>This repeats every {plan.frequency === 'weekly' ? 'week' : 'month'} until you remove it. Add it to your calendar once and it repeats by itself and reminds you the day before.</p>
         <p className="note">Changed your plan? Delete the old calendar event and add the new one, because calendars don't update by themselves.</p>
         <p>
@@ -141,7 +141,7 @@ export default function Dashboard() {
       supabase.from('due_dates').select('*').eq('user_id', uid).order('created_at').limit(1),
       supabase.from('payments').select('*').eq('user_id', uid).order('paid_on', { ascending: false }),
     ]);
-    if (a.error || !a.data) { setErr(a.error?.message || 'Profile not found'); return; }
+    if (a.error || !a.data) { await supabase.auth.signOut(); return router.replace('/'); }
     setP(a.data); setPlan((b.data || [])[0] || null); setPays(c.data || []);
   }, [router]);
   useEffect(() => { load(); }, [load]);
@@ -180,6 +180,7 @@ export default function Dashboard() {
         </nav>
 
         {tab === 'home' && (<>
+          {p.is_admin && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
             <h2>Hello{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
