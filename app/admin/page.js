@@ -46,6 +46,8 @@ function RemindLinks({ s }) {
 
 function EditPanel({ s, onClose, onSaved }) {
   const pl = s.rawPlan;
+  const [orig] = useState(s.rawPlan); // what the student originally requested (frozen when the panel opens)
+  const [decision, setDecision] = useState('Approved as requested');
   const [f, setF] = useState({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '', fees_total: s.fees_total ?? 0 });
   const [freq, setFreq] = useState(pl?.frequency || 'monthly');
   const [start, setStart] = useState(pl?.due_date || '');
@@ -54,6 +56,7 @@ function EditPanel({ s, onClose, onSaved }) {
   const [extra, setExtra] = useState('');
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState(false);
+  const [custom, setCustom] = useState(null);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   async function save(e) {
@@ -73,8 +76,35 @@ function EditPanel({ s, onClose, onSaved }) {
     ? `Your feeding plan is GH₵ ${Number(amount).toLocaleString()} every ${freq === 'weekly' ? 'week' : 'month'}${net ? ' by ' + net : ' by Mobile Money'}, starting ${fmtShort(new Date(start + 'T00:00:00Z'))}.`
     : '';
   const feesLine = Number(f.fees_total) ? ` Your total fees are GH₵ ${Number(f.fees_total).toLocaleString()}.` : '';
-  const text = `Hello ${first}, the Daakyehene Foundation has updated your details. ${planLine}${feesLine}${extra ? ' ' + extra : ''} You can see everything on the student portal. Please pay on time and upload your receipt. Thank you.`.replace(/\s+/g, ' ');
+  const declined = decision === 'Not approved';
+  const text = (declined
+    ? `Hello ${first}, we are not able to approve your feeding payment plan at this time.${extra ? ' ' + extra : ''} Please check the student portal or contact us.`
+    : `Hello ${first}, your feeding payment plan is ${decision.toLowerCase()}.${planLine}${feesLine}${extra ? ' ' + extra : ''} Please pay on time and upload your receipt on the portal.`
+  ).replace(/\s+/g, ' ') + ' Daakyehene Foundation';
   const phone = intl(f.phone);
+
+  const dlong = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const per = (fr) => (fr === 'weekly' ? 'week' : 'month');
+  const describe = (x) => [`- Amount: GH₵ ${Number(x.amount).toLocaleString()}`, `- How often: Every ${per(x.frequency)}`, `- Pay with: ${x.payment_network || 'Mobile Money'} (we accept Mobile Money only)`, `- First payment date: ${dlong(x.due_date)}`];
+  const hasPlan = start && amount !== '';
+  const autoEmail = [
+    `Dear ${first},`, '',
+    'Thank you for setting up your feeding payment plan with the Daakyehene Foundation. Here is our decision.', '',
+    `DECISION: ${decision}`, '',
+    ...(orig && orig.amount != null ? ['What you requested', ...describe(orig), ''] : []),
+    ...(hasPlan && !declined ? [decision === 'Approved as requested' ? 'Your plan (unchanged)' : 'Your plan now', ...describe({ amount, frequency: freq, payment_network: net, due_date: start }), ''] : []),
+    ...(declined ? ['We are not able to approve this plan at this time.', ''] : []),
+    ...(extra ? ['Note from the Foundation', extra, ''] : []),
+    ...(Number(f.fees_total) ? [`Your total fees: GH₵ ${Number(f.fees_total).toLocaleString()}`, ''] : []),
+    'What to do next',
+    '1. Pay by Mobile Money on or before each due date.',
+    '2. Upload your receipt and log the payment on the student portal.',
+    '3. You can see your plan any time under the Feeding plan tab.', '',
+    'If anything looks wrong, please reply to this email.', '',
+    'Thank you,', 'Daakyehene Foundation', 'Empowering People · Building Communities · Creating a Brighter Future',
+  ].join('\n');
+  const emailText = custom ?? autoEmail;
+  const subject = `Your feeding payment plan: ${decision}`;
 
   return (
     <section className="card edit-panel">
@@ -99,8 +129,12 @@ function EditPanel({ s, onClose, onSaved }) {
               <option value="">Choose…</option><option>MTN MoMo</option><option>Telecel Cash</option><option>AT Money</option>
             </select></div>
         </div>
-        <label htmlFor="ef8">Extra note to the student (optional)</label>
-        <input id="ef8" placeholder="e.g. Payments are due before 6pm." value={extra} onChange={(e) => setExtra(e.target.value)} />
+        <label htmlFor="ef9">Your decision</label>
+        <select id="ef9" value={decision} onChange={(e) => { setDecision(e.target.value); setCustom(null); }}>
+          <option>Approved as requested</option><option>Approved with changes</option><option>Not approved</option>
+        </select>
+        <label htmlFor="ef8">Note to the student (reason or extra information)</label>
+        <input id="ef8" placeholder="e.g. Payments are due before 6pm." value={extra} onChange={(e) => { setExtra(e.target.value); setCustom(null); }} />
         {err && <div className="msg err">{err}</div>}
         {saved && <div className="msg">Saved. Now send the student what you decided:</div>}
         <p>
@@ -109,11 +143,15 @@ function EditPanel({ s, onClose, onSaved }) {
         </p>
       </form>
       {saved && (
+        <>
+        <label htmlFor="em">Email draft (you can edit the wording before sending)</label>
+        <textarea id="em" className="draft" rows={14} value={emailText} onChange={(e) => setCustom(e.target.value)} />
         <p className="remind">
-          {s.email && <a className="btn sm" href={`mailto:${s.email}?subject=${encodeURIComponent('Your feeding plan – Daakyehene Foundation')}&body=${encodeURIComponent(text)}`}>Email student</a>}{' '}
+          {s.email && <a className="btn sm" href={`mailto:${s.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailText)}`}>Email student</a>}{' '}
           {phone && <a className="btn alt sm" href={`sms:${phone}?body=${encodeURIComponent(text)}`}>SMS</a>}{' '}
           {phone && <a className="btn alt sm" href={`https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">WhatsApp</a>}
         </p>
+        </>
       )}
     </section>
   );
