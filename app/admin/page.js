@@ -30,15 +30,24 @@ function message(s) {
 }
 
 function RemindLinks({ s }) {
-  const text = message(s);
+  const [open, setOpen] = useState(false);
+  const [custom, setCustom] = useState(null);
+  const text = custom ?? message(s);
   const phone = intl(s.phone);
   const subject = s.status === 'overdue' ? 'Your feeding payment is overdue' : 'Reminder: your feeding payment is due';
   return (
     <span className="remind">
+      <button type="button" className="btn sm" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Edit message'}</button>{' '}
       {phone && <a className="btn alt sm" href={`sms:${phone}?body=${encodeURIComponent(text)}`}>SMS</a>}{' '}
       {phone && <a className="btn alt sm" href={`https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">WhatsApp</a>}{' '}
       {s.email && <a className="btn alt sm" href={`mailto:${s.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`}>Email</a>}
       {!phone && !s.email && <small>No contact saved</small>}
+      {open && (
+        <span style={{ flex: '1 1 100%' }}>
+          <textarea rows={6} value={text} onChange={(e) => setCustom(e.target.value)} />
+          {custom !== null && <button type="button" className="btn alt sm" onClick={() => setCustom(null)}>Reset message</button>}
+        </span>
+      )}
     </span>
   );
 }
@@ -163,6 +172,10 @@ export default function Admin() {
   const [meId, setMeId] = useState(null);
   const [note, setNote] = useState('');
   const [editing, setEditing] = useState(null);
+  const [dismissed, setDismissed] = useState({});
+  useEffect(() => { try { setDismissed(JSON.parse(localStorage.getItem('daakyehene-dismissed') || '{}')); } catch (e) { /* ignore */ } }, []);
+  const keep = (next) => { setDismissed(next); try { localStorage.setItem('daakyehene-dismissed', JSON.stringify(next)); } catch (e) { /* ignore */ } };
+  const notOverdue = (s) => keep({ ...dismissed, [s.id]: s.lastDue.toISOString().slice(0, 10) });
 
   const load = useCallback(() => {
     (async () => {
@@ -224,7 +237,10 @@ export default function Admin() {
   if (!rows) return <div className="wrap">Loading…</div>;
 
   const soon = rows.filter((s) => s.status === 'soon');
-  const overdue = rows.filter((s) => s.status === 'overdue');
+  const isHidden = (s) => s.lastDue && dismissed[s.id] === s.lastDue.toISOString().slice(0, 10);
+  const overdueAll = rows.filter((s) => s.status === 'overdue');
+  const overdue = overdueAll.filter((s) => !isHidden(s));
+  const hidden = overdueAll.length - overdue.length;
   const name = (s) => s.full_name || s.email;
 
   return (
@@ -247,9 +263,11 @@ export default function Admin() {
           {overdue.map((s) => (
             <div className="row" key={s.id}>
               <span><b>{name(s)}</b> · <span className="late">overdue since {fmtShort(s.lastDue)}</span> · {s.plan}</span>
-              <RemindLinks s={{ ...s, status: 'overdue' }} />
+              <RemindLinks s={{ ...s, status: 'overdue' }} />{' '}
+              <button className="btn del sm" onClick={() => notOverdue(s)}>Not overdue</button>
             </div>
           ))}
+          {hidden > 0 && <p><small>{hidden} marked not overdue.</small>{' '}<button className="btn alt sm" onClick={() => keep({})}>Show again</button></p>}
         </section>
 
         <div className="card scroll">

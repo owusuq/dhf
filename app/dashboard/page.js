@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, UPLOAD_FORM, PAYMENT_FORM } from '../../lib/supabase';
 import { nextOccurrence, nextBirthday, daysUntil, googleLink, downloadIcs, ruleFor } from '../../lib/cal';
+import Budget from './Budget';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -143,7 +144,6 @@ export default function Dashboard() {
   const [plan, setPlan] = useState(null);
   const [pays, setPays] = useState([]);
   const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
 
   const load = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -160,7 +160,6 @@ export default function Dashboard() {
   }, [router]);
   useEffect(() => { load(); }, [load]);
 
-  if (err) return <div className="wrap"><div className="msg err">{err}</div></div>;
   if (!p) return <div className="wrap">Loading…</div>;
 
   const paid = pays.reduce((s, x) => s + Number(x.amount), 0);
@@ -188,7 +187,7 @@ export default function Dashboard() {
       </div>
       <div className="wrap">
         <nav className="tabs" role="tablist">
-          {[['home', 'Home'], ['plan', 'Feeding plan'], ['me', 'Profile']].map(([k, label]) => (
+          {[['home', 'Home'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
           ))}
         </nav>
@@ -214,6 +213,8 @@ export default function Dashboard() {
           </section>
           <Payments userId={user} rows={pays} reload={load} />
         </>)}
+
+        {tab === 'budget' && p.is_admin && <Budget userId={user} />}
 
         {tab === 'plan' && <FeedingPlan key={plan?.id || 'new'} userId={user} plan={plan} reload={load} phone={p.phone} />}
 
