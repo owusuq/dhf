@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { supabase } from '../../lib/supabase';
 
-// Personal daily budget in pounds (GBP). Saved on this device only (browser storage).
+// Personal daily budget in pounds (GBP). Saved in Supabase (table: budgets), with a copy on this device as backup.
 const gbp = (n) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(Number(n) || 0);
 const two = (n) => String(n).padStart(2, '0');
 const toStr = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
@@ -61,19 +62,39 @@ function Items({ title, hint, items, onChange, dated }) {
 export default function Budget({ userId }) {
   const key = 'daakyehene-budget:' + userId;
   const [ready, setReady] = useState(false);
+  const [cloud, setCloud] = useState(false); // true once we have safely read from the database
+  const [status, setStatus] = useState('loading');
   const [d, setD] = useState({ money: '', end: endOfMonth(), bills: [], spends: [] });
+  const timer = useRef(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) setD((cur) => ({ ...cur, ...JSON.parse(raw) }));
-    } catch (e) { /* ignore */ }
-    setReady(true);
-  }, [key]);
+    let off = false;
+    (async () => {
+      let local = null;
+      try { const raw = localStorage.getItem(key); if (raw) local = JSON.parse(raw); } catch (e) { /* ignore */ }
+      const { data, error } = await supabase.from('budgets').select('data').eq('user_id', userId).maybeSingle();
+      if (off) return;
+      if (error) setStatus('error');
+      else { setCloud(true); setStatus('saved'); }
+      const saved = !error && data && data.data && Object.keys(data.data).length ? data.data : local;
+      if (saved) setD((cur) => ({ ...cur, ...saved }));
+      setReady(true);
+    })();
+    return () => { off = true; };
+  }, [key, userId]);
+
   useEffect(() => {
     if (!ready) return;
     try { localStorage.setItem(key, JSON.stringify(d)); } catch (e) { /* ignore */ }
-  }, [d, ready, key]);
+    if (!cloud) return;
+    setStatus('saving');
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      const { error } = await supabase.from('budgets').upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() });
+      setStatus(error ? 'error' : 'saved');
+    }, 700);
+    return () => clearTimeout(timer.current);
+  }, [d, ready, cloud, key, userId]);
 
   const t = todayStr();
   const money = Number(d.money) || 0;
@@ -89,6 +110,12 @@ export default function Budget({ userId }) {
     <>
       <section className="card">
         <h2>Daily budget</h2>
+        <p className="note">
+          {status === 'loading' && 'Loading…'}
+          {status === 'saving' && 'Saving…'}
+          {status === 'saved' && 'Saved to your account ✓'}
+          {status === 'error' && 'Not saving to the cloud yet. Run supabase/budget.sql in Supabase (see instructions). Saved on this device for now.'}
+        </p>
         <div className="bud-stats">
           <div className="bud-stat main"><small>Left to spend today</small><b className={left < 0 ? 'neg' : ''}>{gbp(left)}</b></div>
           <div className="bud-stat"><small>Daily budget</small><b>{gbp(daily)}</b></div>
