@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
 
 // Change this one line to rename the programme everywhere on this page.
-const PROGRAM = 'Question School project';
+const PROGRAM = 'Daakyehene Foundation';
 
 const pill = {
   pending: { text: 'Pending', bg: '#fff3cd', fg: '#7a5b00' },
@@ -66,7 +66,7 @@ export default function Apply() {
   return (
     <main>
       <section className="card">
-        <h2>{PROGRAM}</h2>
+        <h2>Apply to the {PROGRAM}</h2>
         <p><Link className="btn alt sm" href="/dashboard">Back to dashboard</Link></p>
 
         {app === undefined && <p>Loading…</p>}
