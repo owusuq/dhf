@@ -305,6 +305,7 @@ export default function Admin() {
   const [note, setNote] = useState('');
   const [editing, setEditing] = useState(null);
   const [dismissed, setDismissed] = useState({});
+  const [q, setQ] = useState('');
   useEffect(() => { try { setDismissed(JSON.parse(localStorage.getItem('daakyehene-dismissed') || '{}')); } catch (e) { /* ignore */ } }, []);
   const keep = (next) => { setDismissed(next); try { localStorage.setItem('daakyehene-dismissed', JSON.stringify(next)); } catch (e) { /* ignore */ } };
   const notOverdue = (s) => keep({ ...dismissed, [s.id]: s.lastDue.toISOString().slice(0, 10) });
@@ -358,6 +359,27 @@ export default function Admin() {
     load();
   }
 
+  async function removeStudent(s) {
+    const who = s.full_name || s.email;
+    if (!confirm('Delete ' + who + '?\n\nThis permanently removes their login (email and password) and all their details, payments and applications. They will no longer be able to sign in. This cannot be undone.')) return;
+    setNote('');
+    try {
+      const { data } = await supabase.auth.getSession();
+      const res = await fetch('/api/admin/delete-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') },
+        body: JSON.stringify({ userId: s.id }),
+      });
+      const out = await res.json();
+      if (!res.ok) throw new Error(out.error || 'Delete failed');
+      if (editing === s.id) setEditing(null);
+      setNote(who + ' was deleted.');
+      load();
+    } catch (e) {
+      setNote(e.message);
+    }
+  }
+
   function csv() {
     const head = 'Name,Email,Phone,Level,Birthday,Option,Fees,Paid,Balance,Feeding plan,Next payment';
     const body = rows.map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, s.fees_total - s.paid, s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
@@ -374,6 +396,8 @@ export default function Admin() {
   const overdue = overdueAll.filter((s) => !isHidden(s));
   const hidden = overdueAll.length - overdue.length;
   const name = (s) => s.full_name || s.email;
+  const t = q.trim().toLowerCase();
+  const shown = rows.filter((s) => !t || String(name(s) || '').toLowerCase().includes(t) || String(s.email || '').toLowerCase().includes(t));
 
   return (
     <>
@@ -382,6 +406,21 @@ export default function Admin() {
         {editing && rows.find((x) => x.id === editing) && (
           <EditPanel key={editing} s={rows.find((x) => x.id === editing)} onClose={() => setEditing(null)} onSaved={load} />
         )}
+        <section className="card">
+          <h2>People with accounts ({rows.length})</h2>
+          <p><Link className="btn alt sm" href="/admin/applications">Applications</Link></p>
+          <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
+          {note && <div className="msg">{note}</div>}
+          {shown.length === 0 && <p><small>No one found.</small></p>}
+          {shown.map((s) => (
+            <div className="row" key={s.id}>
+              <span><b>{name(s)}</b><br /><small>{s.email}{s.is_admin ? ' · Admin' : ''}</small></span>
+              <button type="button" className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
+              {s.id !== meId && !s.is_admin && <button type="button" className="btn del sm" onClick={() => removeStudent(s)}>Delete</button>}
+            </div>
+          ))}
+        </section>
+
         <section className="card">
           <h2>Reminders to send</h2>
           <p>{soon.length} due today or tomorrow · {overdue.length} overdue. Tap a button to open the message already written, then press send.</p>
