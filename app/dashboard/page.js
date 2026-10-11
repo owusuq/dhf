@@ -198,6 +198,7 @@ export default function Dashboard() {
         {tab === 'home' && (<>
           {p.is_admin && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
           {p.is_admin && <Link className="btn admin-go" href="/admin/applications">Applications</Link>}
+          {p.is_admin && <Link className="btn admin-go" href="/admin/delete">Delete students</Link>}
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
             <h2>Hello{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
