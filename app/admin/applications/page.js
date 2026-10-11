@@ -31,7 +31,7 @@ function Pill({ status }) {
   );
 }
 
-function AppCard({ a, onChange }) {
+function AppCard({ a, onChange, onDelete }) {
   const [custom, setCustom] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -55,6 +55,17 @@ function AppCard({ a, onChange }) {
     if (!r.data || !r.data.length) return setErr('Nothing was saved. Run supabase/applications.sql in Supabase first.');
     setCustom(null);
     onChange(r.data[0]);
+  }
+
+  async function remove() {
+    if (!window.confirm('Delete this declined application permanently?')) return;
+    setBusy(true);
+    setErr('');
+    const r = await supabase.from('applications').delete().eq('id', a.id).select('id');
+    setBusy(false);
+    if (r.error) return setErr(r.error.message);
+    if (!r.data || !r.data.length) return setErr('Nothing was deleted. Run supabase/applications_delete.sql in Supabase first.');
+    onDelete(a.id);
   }
 
   return (
@@ -84,7 +95,8 @@ function AppCard({ a, onChange }) {
             {phone && <a className="btn alt sm" href={`sms:${phone}?body=${encodeURIComponent(text)}`}>SMS</a>}{' '}
             {a.email && <a className="btn alt sm" href={`mailto:${a.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`}>Email</a>}{' '}
             {!phone && !a.email && <small>No contact saved</small>}
-            <button type="button" className="btn alt sm" disabled={busy} onClick={() => decide('pending')}>Change decision</button>
+            <button type="button" className="btn alt sm" disabled={busy} onClick={() => decide('pending')}>Change decision</button>{' '}
+            {a.status === 'declined' && <button type="button" className="btn alt sm" disabled={busy} onClick={remove}>Delete</button>}
           </p>
         </>
       )}
@@ -118,6 +130,16 @@ export default function Applications() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function clearDeclined() {
+    const n = (rows || []).filter((x) => x.status === 'declined').length;
+    if (!n || !window.confirm('Delete all ' + n + ' declined applications permanently?')) return;
+    setErr('');
+    const r = await supabase.from('applications').delete().eq('status', 'declined').select('id');
+    if (r.error) return setErr(r.error.message);
+    if (!r.data || !r.data.length) return setErr('Nothing was deleted. Run supabase/applications_delete.sql in Supabase first.');
+    setRows((l) => l.filter((x) => x.status !== 'declined'));
+  }
+
   const count = (s) => (rows || []).filter((x) => s === 'all' || x.status === s).length;
   const list = (rows || []).filter((x) => filter === 'all' || x.status === filter);
   const tabs = [['pending', 'Pending'], ['accepted', 'Accepted'], ['declined', 'Declined'], ['all', 'All']];
@@ -134,12 +156,15 @@ export default function Applications() {
             </button>
           ))}
         </div>
+        {filter === 'declined' && count('declined') > 0 && (
+          <p><button type="button" className="btn alt sm" onClick={clearDeclined}>Clear all declined</button></p>
+        )}
         {err && <div className="msg err">{err}</div>}
         {rows === null && !err && <p>Loading…</p>}
         {rows && list.length === 0 && <p><small>No applications here.</small></p>}
       </section>
       {list.map((a) => (
-        <AppCard key={a.id} a={a} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />
+        <AppCard key={a.id} a={a} onDelete={(id) => setRows((l) => l.filter((x) => x.id !== id))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />
       ))}
     </main>
   );
