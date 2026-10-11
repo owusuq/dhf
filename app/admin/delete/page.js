@@ -29,9 +29,6 @@ export default function DeleteStudents() {
     setBusyId(s.id); setErr(''); setMsg('');
     try {
       const { data } = await supabase.auth.getSession();
-      // Remove their records first (ignored if your database already cascades)
-      await supabase.from('payments').delete().eq('user_id', s.id);
-      await supabase.from('due_dates').delete().eq('user_id', s.id);
       const res = await fetch('/api/admin/delete-student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') },
