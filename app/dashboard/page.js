@@ -6,6 +6,8 @@ import { supabase, UPLOAD_FORM, PAYMENT_FORM } from '../../lib/supabase';
 import { nextOccurrence, nextBirthday, daysUntil, googleLink, downloadIcs, ruleFor } from '../../lib/cal';
 import Budget from './Budget';
 import Results from './Results';
+import DataSupport from './DataSupport';
+import DataSupportAdmin from './DataSupportAdmin';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -194,7 +196,7 @@ export default function Dashboard() {
       </div>
       <div className="wrap">
         <nav className="tabs" role="tablist">
-          {[['home', 'Home'], ['results', 'Results'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
+          {[['home', 'Home'], ['results', 'Results'], ['data', 'Data Support'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
           ))}
         </nav>
@@ -233,6 +235,8 @@ export default function Dashboard() {
         {tab === 'budget' && p.is_admin && <Budget userId={user} />}
 
         {tab === 'results' && <Results isAdmin={!!p.is_admin} />}
+
+        {tab === 'data' && (p.is_admin ? <DataSupportAdmin /> : <DataSupport />)}
 
         {tab === 'plan' && <FeedingPlan key={plan?.id || 'new'} userId={user} plan={plan} reload={load} phone={p.phone} />}
 
