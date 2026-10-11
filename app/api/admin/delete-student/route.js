@@ -57,13 +57,18 @@ export async function POST(req) {
       );
     }
 
-    // 6. Delete the login (email + password). This also signs them out for good.
+    // 6. Remove their records (done here, after the admin check, so nothing is lost if the check fails).
+    for (const table of ['payments', 'due_dates', 'applications']) {
+      await admin.from(table).delete().eq('user_id', userId);
+    }
+
+    // 7. Delete the login (email + password). This also signs them out for good.
     const { error: delErr } = await admin.auth.admin.deleteUser(userId);
     if (delErr) {
       return NextResponse.json({ error: delErr.message }, { status: 500 });
     }
 
-    // 7. Delete their profile row (a no-op if your schema already cascades).
+    // 8. Delete their profile row (a no-op if your schema already cascades).
     await admin.from('profiles').delete().eq('id', userId);
 
     return NextResponse.json({ ok: true });
