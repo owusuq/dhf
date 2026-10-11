@@ -399,7 +399,6 @@ export default function Admin() {
               <button className="btn del sm" onClick={() => notOverdue(s)}>Not overdue</button>
             </div>
           ))}
-          {hidden > 0 && <p><small>{hidden} marked not overdue.</small>{' '}<button className="btn alt sm" onClick={() => keep({})}>Show again</button></p>}
         </section>
 
         <div className="card scroll">
