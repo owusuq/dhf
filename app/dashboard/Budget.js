@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
-// Personal daily budget in pounds (GBP). Saved in Supabase (table: budgets), with a copy on this device as backup.
+// Personal daily budget in pounds (GBP).
+// Saved to your account (Supabase auth profile data), so it follows you to any device. No table or SQL needed.
+// A copy is also kept on this device as a backup.
 const gbp = (n) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(Number(n) || 0);
 const two = (n) => String(n).padStart(2, '0');
 const toStr = (d) => d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
@@ -12,6 +14,16 @@ const day = (s) => new Date(s + 'T00:00:00');
 const sum = (a) => a.reduce((t, x) => t + Number(x.amount || 0), 0);
 const uid = () => Math.random().toString(36).slice(2, 10);
 const nice = (s) => day(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+// Keeps the saved data small: spending older than 12 days (or beyond the newest 45 entries) is folded into one total.
+function compact(d) {
+  const cut = new Date(); cut.setDate(cut.getDate() - 12);
+  const cutStr = toStr(cut);
+  const sorted = [...(d.spends || [])].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const keep = sorted.filter((x, i) => x.date >= cutStr && i < 45);
+  const dropped = sorted.filter((x) => !keep.includes(x));
+  return { ...d, spends: keep, archived: Number(d.archived || 0) + sum(dropped) };
+}
 
 function Items({ title, hint, items, onChange, dated }) {
   const blank = { name: '', amount: '', date: todayStr() };
@@ -61,47 +73,81 @@ function Items({ title, hint, items, onChange, dated }) {
 
 export default function Budget({ userId }) {
   const key = 'daakyehene-budget:' + userId;
+  const fresh = { money: '', end: endOfMonth(), bills: [], spends: [], archived: 0, ts: 0 };
   const [ready, setReady] = useState(false);
-  const [cloud, setCloud] = useState(false); // true once we have safely read from the database
   const [status, setStatus] = useState('loading');
-  const [d, setD] = useState({ money: '', end: endOfMonth(), bills: [], spends: [] });
+  const [errText, setErrText] = useState('');
+  const [d, setD] = useState(fresh);
+  const dRef = useRef(d);
+  const dirty = useRef(false);
   const timer = useRef(null);
+  dRef.current = d;
+
+  const upd = (patch) => { dirty.current = true; setD((cur) => ({ ...cur, ...patch, ts: Date.now() })); };
+
+  async function pull() {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) { setStatus('error'); setErrText(error.message); return null; }
+    return (data.user && data.user.user_metadata && data.user.user_metadata.budget) || {};
+  }
 
   useEffect(() => {
     let off = false;
     (async () => {
       let local = null;
       try { const raw = localStorage.getItem(key); if (raw) local = JSON.parse(raw); } catch (e) { /* ignore */ }
-      const { data, error } = await supabase.from('budgets').select('data').eq('user_id', userId).maybeSingle();
+      const cloud = await pull();
       if (off) return;
-      if (error) setStatus('error');
-      else { setCloud(true); setStatus('saved'); }
-      const saved = !error && data && data.data && Object.keys(data.data).length ? data.data : local;
-      if (saved) setD((cur) => ({ ...cur, ...saved }));
+      const cTs = (cloud && cloud.ts) || 0;
+      const lTs = (local && local.ts) || 0;
+      // newest copy wins; old data from before cloud saving (no timestamp) is uploaded once
+      const pick = local && (lTs > cTs || (!cTs && local.money !== undefined)) ? local : (cloud && cTs ? cloud : null);
+      if (pick) {
+        setD({ ...fresh, ...compact({ ...fresh, ...pick }) });
+        if (pick === local && cloud !== null) { dirty.current = true; }
+      }
+      if (cloud !== null) setStatus('saved');
       setReady(true);
     })();
     return () => { off = true; };
-  }, [key, userId]);
+  }, [key]);
+
+  // when you come back to this tab/app, pick up changes made on another device
+  useEffect(() => {
+    async function onShow() {
+      if (document.visibilityState !== 'visible' || dirty.current) return;
+      const cloud = await pull();
+      if (cloud && cloud.ts && cloud.ts > (dRef.current.ts || 0)) setD({ ...fresh, ...compact({ ...fresh, ...cloud }) });
+    }
+    document.addEventListener('visibilitychange', onShow);
+    return () => document.removeEventListener('visibilitychange', onShow);
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
     try { localStorage.setItem(key, JSON.stringify(d)); } catch (e) { /* ignore */ }
-    if (!cloud) return;
+    if (!dirty.current) return;
     setStatus('saving');
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
-      const { error } = await supabase.from('budgets').upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() });
-      setStatus(error ? 'error' : 'saved');
-    }, 700);
-    return () => clearTimeout(timer.current);
-  }, [d, ready, cloud, key, userId]);
+      const { error } = await supabase.auth.updateUser({ data: { budget: compact(dRef.current) } });
+      if (error) { setStatus('error'); setErrText(error.message); }
+      else { dirty.current = false; setStatus('saved'); setErrText(''); }
+    }, 900);
+  }, [d, ready, key]);
+
+  function newPeriod() {
+    if (!confirm('Start a new period? This clears your spending and the money amount. Bills stay.')) return;
+    const base = new Date(Math.max(day(d.end || todayStr()), day(todayStr())));
+    upd({ money: '', spends: [], archived: 0, end: toStr(new Date(base.getFullYear(), base.getMonth() + 2, 0)) });
+  }
 
   const t = todayStr();
   const money = Number(d.money) || 0;
   const bills = sum(d.bills);
-  const before = sum(d.spends.filter((x) => x.date < t));
+  const before = sum(d.spends.filter((x) => x.date < t)) + Number(d.archived || 0);
   const spentToday = sum(d.spends.filter((x) => x.date === t));
-  const spentAll = sum(d.spends);
+  const spentAll = sum(d.spends) + Number(d.archived || 0);
   const daysLeft = Math.max(1, Math.round((day(d.end || t) - day(t)) / 86400000) + 1);
   const daily = (money - bills - before) / daysLeft;
   const left = daily - spentToday;
@@ -113,8 +159,8 @@ export default function Budget({ userId }) {
         <p className="note">
           {status === 'loading' && 'Loading…'}
           {status === 'saving' && 'Saving…'}
-          {status === 'saved' && 'Saved to your account ✓'}
-          {status === 'error' && 'Not saving to the cloud yet. Run supabase/budget.sql in Supabase (see instructions). Saved on this device for now.'}
+          {status === 'saved' && 'Saved to your account ✓ (works on any device)'}
+          {status === 'error' && 'Could not save to your account' + (errText ? ': ' + errText : '') + '. Saved on this device for now.'}
         </p>
         <div className="bud-stats">
           <div className="bud-stat main"><small>Left to spend today</small><b className={left < 0 ? 'neg' : ''}>{gbp(left)}</b></div>
@@ -124,13 +170,14 @@ export default function Budget({ userId }) {
           <div className="bud-stat"><small>Left after bills and spending</small><b className={money - bills - spentAll < 0 ? 'neg' : ''}>{gbp(money - bills - spentAll)}</b></div>
         </div>
         <div className="grid">
-          <div><label htmlFor="bm">Money for this period (£)</label><input id="bm" type="number" inputMode="decimal" step="0.01" min="0" value={d.money} onChange={(e) => setD({ ...d, money: e.target.value })} /></div>
-          <div><label htmlFor="be">Period ends on</label><input id="be" type="date" value={d.end} onChange={(e) => setD({ ...d, end: e.target.value })} /></div>
+          <div><label htmlFor="bm">Money for this period (£)</label><input id="bm" type="number" inputMode="decimal" step="0.01" min="0" value={d.money} onChange={(e) => upd({ money: e.target.value })} /></div>
+          <div><label htmlFor="be">Period ends on</label><input id="be" type="date" value={d.end} onChange={(e) => upd({ end: e.target.value })} /></div>
         </div>
         <p className="note">Daily budget = (money − bills − spending on earlier days) ÷ days left. Unspent money carries over to tomorrow automatically.</p>
+        <p><button className="btn alt sm" onClick={newPeriod}>Start new period</button></p>
       </section>
-      <Items title="Bills and fixed costs" hint="Rent, phone, transport pass: anything you must pay this period." items={d.bills} onChange={(bills) => setD({ ...d, bills })} />
-      <Items title="Spending" hint="Add what you spend each day." items={d.spends} dated onChange={(spends) => setD({ ...d, spends })} />
+      <Items title="Bills and fixed costs" hint="Rent, phone, transport pass: anything you must pay this period." items={d.bills} onChange={(bills) => upd({ bills })} />
+      <Items title="Spending" hint="Add what you spend each day." items={d.spends} dated onChange={(spends) => upd({ spends })} />
     </>
   );
 }
