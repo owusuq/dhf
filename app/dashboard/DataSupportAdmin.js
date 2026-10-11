@@ -26,6 +26,20 @@ export default function DataSupportAdmin() {
     load();
   }
 
+  async function removeReq(id) {
+    if (!window.confirm('Delete this request?')) return;
+    const { data, error } = await supabase.from('data_requests').delete().eq('id', id).select('id');
+    if (error || !data || !data.length) return alert('Nothing was deleted. Run supabase/data_requests_delete.sql in Supabase first.');
+    load();
+  }
+  async function clearSent() {
+    const n = reqs.filter((x) => x.status !== 'pending').length;
+    if (!n || !window.confirm('Delete all ' + n + ' sent requests permanently?')) return;
+    const { data, error } = await supabase.from('data_requests').delete().neq('status', 'pending').select('id');
+    if (error || !data || !data.length) return alert('Nothing was deleted. Run supabase/data_requests_delete.sql in Supabase first.');
+    load();
+  }
+
   if (!s) return <p style={{ padding: 20 }}>Loading…</p>;
 
   return (
@@ -49,6 +63,9 @@ export default function DataSupportAdmin() {
         }} />
 
       <h3 style={{ marginTop: 28 }}>Requests</h3>
+      {reqs.some((x) => x.status !== 'pending') && (
+        <p><button onClick={clearSent}>Clear all sent</button></p>
+      )}
       {reqs.length === 0 && <p>No requests yet.</p>}
       {reqs.map((r) => (
         <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #eee' }}>
@@ -58,6 +75,7 @@ export default function DataSupportAdmin() {
             {r.status === 'pending'
               ? <button onClick={() => markSent(r.id)}>Mark sent</button>
               : <span style={{ color: '#198754' }}>Sent</span>}
+            <button onClick={() => removeReq(r.id)}>Delete</button>
           </span>
         </div>
       ))}
