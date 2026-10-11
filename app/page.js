@@ -3,13 +3,24 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
 
+const FLAG = 'dhf-apply';
+const rememberApply = () => { try { localStorage.setItem(FLAG, '1'); } catch (e) { /* ignore */ } };
+const takeApply = () => {
+  try {
+    const v = localStorage.getItem(FLAG);
+    if (v) localStorage.removeItem(FLAG);
+    return !!v;
+  } catch (e) { return false; }
+};
+
 export default function Login() {
   const router = useRouter();
   const [mode, setMode] = useState('in');
+  const [applying, setApplying] = useState(false);
   const [f, setF] = useState({ email: '', password: '', name: '' });
   const [msg, setMsg] = useState(null);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => data.session && router.replace('/dashboard'));
+    supabase.auth.getSession().then(({ data }) => data.session && router.replace(takeApply() ? '/apply' : '/dashboard'));
   }, [router]);
 
   async function go(e) {
@@ -19,8 +30,13 @@ export default function Login() {
       ? await supabase.auth.signInWithPassword({ email: f.email, password: f.password })
       : await supabase.auth.signUp({ email: f.email, password: f.password, options: { data: { full_name: f.name } } });
     if (res.error) return setMsg({ err: true, t: res.error.message });
-    if (mode === 'up' && !res.data.session) return setMsg({ t: 'Check your email to confirm your account, then sign in.' });
-    router.replace('/dashboard');
+    if (mode === 'up' && !res.data.session) return setMsg({ t: 'Check your email to confirm your account, then sign in. After you sign in, you will go straight to the application form.' });
+    router.replace(takeApply() ? '/apply' : '/dashboard');
+  }
+  function startApply() {
+    rememberApply();
+    setApplying(true);
+    setMode('up');
   }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
@@ -30,6 +46,7 @@ export default function Login() {
         <form className="card" onSubmit={go}>
           <h1>{mode === 'in' ? 'Sign in' : 'Create your account'}</h1>
           <p>Track your fees, payment dates and receipts in one place.</p>
+          {applying && <div className="msg">To apply, you need an account. {mode === 'up' ? 'Create one below.' : 'Sign in below.'} You will go straight to the application form afterwards.</div>}
           {mode === 'up' && (<><label htmlFor="n">Full name</label><input id="n" required value={f.name} onChange={set('name')} /></>)}
           <label htmlFor="e">Email</label><input id="e" type="email" required value={f.email} onChange={set('email')} />
           <label htmlFor="p">Password</label><input id="p" type="password" minLength={6} required value={f.password} onChange={set('password')} />
@@ -38,6 +55,11 @@ export default function Login() {
           <button type="button" className="btn alt sm" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
             {mode === 'in' ? 'New student? Create an account' : 'Have an account? Sign in'}
           </button>
+          {!applying && (
+            <p style={{ marginTop: '1rem' }}>
+              <button type="button" className="btn alt" onClick={startApply}>Apply to the Daakyehene Foundation</button>
+            </p>
+          )}
         </form>
       </div>
     </>
