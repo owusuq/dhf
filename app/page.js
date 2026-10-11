@@ -13,6 +13,8 @@ const takeApply = () => {
   } catch (e) { return false; }
 };
 
+const rememberResults = () => { try { localStorage.setItem('dhf-results', '1'); } catch (e) { /* ignore */ } };
+
 async function destination(uid) {
   if (!takeApply()) return '/dashboard';
   const a = await supabase.from('applications').select('id').eq('user_id', uid).eq('program', 'Daakyehene Foundation').maybeSingle();
@@ -23,6 +25,7 @@ export default function Login() {
   const router = useRouter();
   const [mode, setMode] = useState('in');
   const [applying, setApplying] = useState(false);
+  const [viewingResults, setViewingResults] = useState(false);
   const [f, setF] = useState({ email: '', password: '', name: '' });
   const [msg, setMsg] = useState(null);
   useEffect(() => {
@@ -39,6 +42,11 @@ export default function Login() {
     if (mode === 'up' && !res.data.session) return setMsg({ t: 'Check your email to confirm your account, then sign in. After you sign in, you will go straight to the application form.' });
     router.replace(await destination(res.data.session.user.id));
   }
+  function startResults() {
+    rememberResults();
+    setViewingResults(true);
+    setMode('in');
+  }
   function startApply() {
     rememberApply();
     setApplying(true);
@@ -53,6 +61,7 @@ export default function Login() {
           <h1>{mode === 'in' ? 'Sign in' : 'Create your account'}</h1>
           <p>Track your fees, payment dates and receipts in one place.</p>
           {applying && <div className="msg">To apply, you need an account. {mode === 'up' ? 'Create one below.' : 'Sign in below.'} You will go straight to the application form afterwards.</div>}
+          {viewingResults && <div className="msg">Sign in to see your results.</div>}
           {mode === 'up' && (<><label htmlFor="n">Full name</label><input id="n" required value={f.name} onChange={set('name')} /></>)}
           <label htmlFor="e">Email</label><input id="e" type="email" required value={f.email} onChange={set('email')} />
           <label htmlFor="p">Password</label><input id="p" type="password" minLength={6} required value={f.password} onChange={set('password')} />
@@ -61,9 +70,14 @@ export default function Login() {
           <button type="button" className="btn alt sm" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
             {mode === 'in' ? 'New student? Create an account' : 'Have an account? Sign in'}
           </button>
-          {!applying && (
+          {!applying && !viewingResults && (
             <p style={{ marginTop: '1rem' }}>
               <button type="button" className="btn alt" onClick={startApply}>Apply to the Daakyehene Foundation</button>
+            </p>
+          )}
+          {!applying && !viewingResults && (
+            <p>
+              <button type="button" className="btn alt" onClick={startResults}>View my results</button>
             </p>
           )}
         </form>

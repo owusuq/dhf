@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabase, UPLOAD_FORM, PAYMENT_FORM } from '../../lib/supabase';
 import { nextOccurrence, nextBirthday, daysUntil, googleLink, downloadIcs, ruleFor } from '../../lib/cal';
 import Budget from './Budget';
+import Results from './Results';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -162,6 +163,9 @@ export default function Dashboard() {
     setApplication(d.data || null);
   }, [router]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    try { if (localStorage.getItem('dhf-results')) { localStorage.removeItem('dhf-results'); setTab('results'); } } catch (e) { /* ignore */ }
+  }, []);
 
   if (!p) return <div className="wrap">Loading…</div>;
 
@@ -190,7 +194,7 @@ export default function Dashboard() {
       </div>
       <div className="wrap">
         <nav className="tabs" role="tablist">
-          {[['home', 'Home'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
+          {[['home', 'Home'], ['results', 'Results'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
           ))}
         </nav>
@@ -227,6 +231,8 @@ export default function Dashboard() {
         </>)}
 
         {tab === 'budget' && p.is_admin && <Budget userId={user} />}
+
+        {tab === 'results' && <Results isAdmin={!!p.is_admin} />}
 
         {tab === 'plan' && <FeedingPlan key={plan?.id || 'new'} userId={user} plan={plan} reload={load} phone={p.phone} />}
 
