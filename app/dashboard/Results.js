@@ -28,7 +28,7 @@ export default function Results({ isAdmin }) {
     if (r.error) { setMsg({ err: true, t: r.error.message }); setRows([]); return; }
     setRows(r.data || []);
     if (isAdmin) {
-      const s = await supabase.from('profiles').select('id, full_name, email').order('full_name');
+      const s = await supabase.from('profiles').select('id, full_name, email').or('is_admin.is.null,is_admin.eq.false').order('full_name');
       setStudents(s.data || []);
     }
   }, [isAdmin]);
