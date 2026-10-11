@@ -29,6 +29,8 @@ export default function Apply() {
   const [app, setApp] = useState(undefined); // undefined = loading, null = none yet
   const [reason, setReason] = useState('');
   const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [level, setLevel] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +43,8 @@ export default function Apply() {
       const p = await supabase.from('profiles').select('full_name, email, level, phone').eq('id', uid).single();
       setProfile(p.data || {});
       setPhone((p.data && p.data.phone) || '');
+      setName((p.data && p.data.full_name) || '');
+      setLevel((p.data && p.data.level) || '');
       const a = await supabase.from('applications').select('*').eq('user_id', uid).eq('program', PROGRAM).maybeSingle();
       setApp(a.data || null);
     })();
@@ -48,9 +52,17 @@ export default function Apply() {
 
   async function submit(e) {
     e.preventDefault();
+    if (name.trim().length < 2) return setErr('Enter your full name.');
     if (reason.trim().length < 10) return setErr('Tell us a bit about why you want to join.');
     setBusy(true);
     setErr('');
+    const up = await supabase
+      .from('profiles')
+      .update({ full_name: name.trim(), level: level.trim(), phone: phone.trim() })
+      .eq('id', userId)
+      .select('id');
+    if (up.error) { setBusy(false); return setErr(up.error.message); }
+    setProfile((pr) => ({ ...pr, full_name: name.trim(), level: level.trim() }));
     const r = await supabase
       .from('applications')
       .insert({ user_id: userId, program: PROGRAM, reason: reason.trim(), phone: phone.trim() || null })
@@ -83,9 +95,11 @@ export default function Apply() {
 
         {app === null && profile && (
           <form onSubmit={submit}>
-            <p><small>Your details come from your profile. Update them under Profile if anything is wrong.</small></p>
-            <div className="row"><span>Name</span><b>{profile.full_name || '—'}</b></div>
-            <div className="row"><span>Level</span><b>{profile.level || '—'}</b></div>
+            <p><small>Check your details. Any changes you make here also update your profile.</small></p>
+            <label htmlFor="ap0">Full name</label>
+            <input id="ap0" value={name} onChange={(e) => { setName(e.target.value); setErr(''); }} />
+            <label htmlFor="apl">Level</label>
+            <input id="apl" value={level} onChange={(e) => setLevel(e.target.value)} placeholder="e.g. Level 200" />
             <div className="row"><span>Email</span><b>{profile.email || '—'}</b></div>
             <label htmlFor="ap1">Phone number</label>
             <input id="ap1" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
