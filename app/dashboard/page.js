@@ -143,6 +143,7 @@ export default function Dashboard() {
   const [p, setP] = useState(null);
   const [plan, setPlan] = useState(null);
   const [pays, setPays] = useState([]);
+  const [application, setApplication] = useState(null);
   const [msg, setMsg] = useState('');
 
   const load = useCallback(async () => {
@@ -150,13 +151,15 @@ export default function Dashboard() {
     if (!data.session) return router.replace('/');
     const uid = data.session.user.id;
     setUser(uid);
-    const [a, b, c] = await Promise.all([
+    const [a, b, c, d] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).single(),
       supabase.from('due_dates').select('*').eq('user_id', uid).order('created_at').limit(1),
       supabase.from('payments').select('*').eq('user_id', uid).order('paid_on', { ascending: false }),
+      supabase.from('applications').select('status').eq('user_id', uid).eq('program', 'Daakyehene Foundation').maybeSingle(),
     ]);
     if (a.error || !a.data) { await supabase.auth.signOut(); return router.replace('/'); }
     setP(a.data); setPlan((b.data || [])[0] || null); setPays(c.data || []);
+    setApplication(d.data || null);
   }, [router]);
   useEffect(() => { load(); }, [load]);
 
@@ -194,6 +197,7 @@ export default function Dashboard() {
 
         {tab === 'home' && (<>
           {p.is_admin && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
+          {p.is_admin && <Link className="btn admin-go" href="/admin/applications">Applications</Link>}
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
             <h2>Hello{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
@@ -204,6 +208,13 @@ export default function Dashboard() {
               <div className="stat"><small>Next payment</small><b>{next ? `${fmt(next)} (${daysUntil(next)}d)` : 'Not set'}</b></div>
               <div className="stat"><small>Birthday</small><b>{bd === null ? 'Add yours in Profile' : bd === 0 ? 'Today' : bd + ' days'}</b></div>
             </div>
+          </section>
+          <section className="card">
+            <h2>Apply to the Daakyehene Foundation</h2>
+            {application
+              ? <p>Your application: <b>{application.status === 'pending' ? 'Pending' : application.status === 'accepted' ? 'Accepted' : 'Not accepted'}</b></p>
+              : <p>Want to join? Send your application in a few minutes.</p>}
+            <Link className="btn" href="/apply">{application ? 'View application' : 'Apply now'}</Link>
           </section>
           {!plan && <section className="card"><h2>Set up your feeding plan</h2><p>Choose how often you pay and get calendar reminders.</p><button className="btn" onClick={() => setTab('plan')}>Set it up</button></section>}
           <section className="card">
