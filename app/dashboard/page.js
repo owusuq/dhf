@@ -195,11 +195,26 @@ export default function Dashboard() {
         <button onClick={async () => { await supabase.auth.signOut(); router.replace('/'); }}>Sign out</button>
       </div>
       <div className="wrap">
-        <nav className="tabs" role="tablist">
-          {[['home', 'Home'], ['results', 'Results'], ['data', 'Data Support'], ['plan', 'Feeding plan'], ['me', 'Profile'], ...(p.is_admin ? [['budget', 'Budget £']] : [])].map(([k, label]) => (
-            <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
+        <>
+        <style dangerouslySetInnerHTML={{ __html: ".gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
+        <nav className="gnav" role="tablist">
+          {[
+            ['Overview', [['home', 'Home']]],
+            ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
+            ['My account', [['plan', 'Feeding plan'], ['me', 'Profile']]],
+            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3']]]] : []),
+          ].map(([title, items]) => (
+            <div className="gnav-g" key={title}>
+              <div className="gnav-t">{title}</div>
+              <div className="gnav-r">
+                {items.map(([k, label]) => (
+                  <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
+        </>
 
         {tab === 'home' && (<>
           {p.is_admin && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
