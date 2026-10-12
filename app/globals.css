@@ -170,3 +170,8 @@ nav button,nav [role=tab],header button{color:#fff!important}
 .p-dark-toggle{position:fixed;right:16px;bottom:16px;z-index:9999;width:44px;height:44px;border-radius:50%;border:2px solid #c9a227;background:#0a2342;color:#fff;font-size:20px;cursor:pointer}
 html.dark{filter:invert(1) hue-rotate(180deg);background:#fff}
 html.dark img,html.dark video,html.dark .p-dark-toggle,html.dark .p-toast,html.dark .dn-btn,html.dark .dn-ov{filter:invert(1) hue-rotate(180deg)}
+
+/* stats */
+.dn-stats{margin:0 0 14px;padding:12px;background:#f4f7fb;border-radius:12px;font-size:15px;line-height:1.5}
+.dn-stats:empty{display:none}
+.dn-gfm{display:block;margin-top:12px;padding:12px;border:1px solid #c9a227;border-radius:12px;color:#0a2342;font-weight:700;font-size:14px;text-decoration:none}

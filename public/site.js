@@ -1,6 +1,7 @@
 
 (function () {
   var C = {"momo":"0598124922","network":"MTN","name":"Kwadjo Owusu-Ansah Quarshie","ref":"dhf","email":"daakyehenefoundation@outlook.com"};
+  var SB = {"url":"https://eqgrjxeicpxhqbntoptu.supabase.co","key":"sb_publishable_4NoBh6-PgN-doYrv-cnq4w_r6Iklq6C"};
   var SHOW = ['/', '/login'];
   var d = document;
   try { if (localStorage.getItem('dark') === '1') d.documentElement.classList.add('dark'); } catch (e) {}
@@ -20,8 +21,10 @@
     var o = d.createElement('div'); o.className = 'dn-ov';
     o.innerHTML = '<div class="dn-card"><h2>Support a student \u2764\uFE0F</h2>' +
       '<p>Your gift helps students at the Daakyehene Foundation stay in school. Thank you!</p>' +
+      '<div class="dn-stats"></div>' +
       '<div class="dn-momo">Mobile Money (' + C.network + ')<br><span class="dn-num">' + C.momo + '</span><br>' + C.name +
       '<br>Payment reference: <b>' + C.ref + '</b><br><button class="dn-copy">Copy number</button></div>' +
+      '<a class="dn-gfm" href="https://gofund.me/ded4e4e50" target="_blank" rel="noopener">💧 Clean drinking water project · GoFundMe</a>' +
       '<p class="dn-note">Giving from abroad, by bank transfer, or a large amount? Please email <a href="mailto:' + C.email + '">' + C.email + '</a></p>' +
       '<button class="dn-x">Close</button></div>';
     o.addEventListener('click', function (e) { if (e.target === o) close(); });
@@ -31,6 +34,16 @@
       try { navigator.clipboard.writeText(C.momo); } catch (e) {}
       c.textContent = 'Copied \u2713';
     };
+    fetch(SB.url + '/rest/v1/rpc/public_student_stats', {
+      method: 'POST',
+      headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      var n = j && j.tertiary;
+      if (typeof n === 'number' && n > 0) {
+        o.querySelector('.dn-stats').innerHTML = '🎓 <b>' + n + '</b> tertiary student' + (n === 1 ? '' : 's') + ' currently enrolled<br><small>Updated live from the portal</small>';
+      }
+    }).catch(function () {});
     d.body.appendChild(o);
   }
 
