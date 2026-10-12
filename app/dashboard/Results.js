@@ -42,11 +42,12 @@ export default function Results({ isAdmin }) {
   async function upload(e) {
     e.preventDefault();
     setMsg(null);
+    if (isAdmin && !form.user_id) return setMsg({ err: true, t: 'Choose a student first.' });
     if (!file) return setMsg({ err: true, t: 'Choose a file first.' });
     if (file.size > MAX_BYTES) return setMsg({ err: true, t: 'File is over 4MB. Please use a smaller PDF or image.' });
     setBusy(true);
     const fd = new FormData();
-    fd.append('user_id', form.user_id);
+    if (isAdmin) fd.append('user_id', form.user_id);
     fd.append('title', form.title);
     fd.append('file', file);
     try {
@@ -100,15 +101,17 @@ export default function Results({ isAdmin }) {
 
   return (
     <>
-      {isAdmin && (
+      {(
         <form className="card" onSubmit={upload}>
-          <h2>Upload a result</h2>
+          <h2>{isAdmin ? 'Upload a result' : 'Upload my result'}</h2>
           <p>PDF or image works best. Other file types are accepted too. Max 4MB.</p>
-          <label htmlFor="rs">Student</label>
-          <select id="rs" required value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
-            <option value="">Choose a student…</option>
-            {students.map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
-          </select>
+          {isAdmin && (<>
+            <label htmlFor="rs">Student</label>
+            <select id="rs" required value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })}>
+              <option value="">Choose a student…</option>
+              {students.map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
+            </select>
+          </>)}
           <label htmlFor="rt">Title</label>
           <input id="rt" placeholder="e.g. Term 1 Results" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <label htmlFor="rf">File</label>
@@ -120,7 +123,6 @@ export default function Results({ isAdmin }) {
 
       <section className="card">
         <h2>{isAdmin ? 'All results' : 'My results'}</h2>
-        {!isAdmin && msg && <div className={'msg' + (msg.err ? ' err' : '')}>{msg.t}</div>}
         {isAdmin && (
           <select aria-label="Filter by student" value={filter} onChange={(e) => setFilter(e.target.value)}>
             <option value="">All students</option>
