@@ -14,7 +14,7 @@ export default function RootLayout({ children }) {
       <body className={`${display.variable} ${body.variable}`}>
         <div className="page">{children}</div>
         <Footer />
-      <script src="/extras.js" defer></script></body>
+      <script src="/extras.js" defer></script><script src="/donate.js" defer></script></body>
     </html>
   );
 }
