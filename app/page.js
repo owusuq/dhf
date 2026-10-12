@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabase';
+import RequestButton from './RequestButton';
 
 const FLAG = 'dhf-apply';
 const rememberApply = () => { try { localStorage.setItem(FLAG, '1'); } catch (e) { /* ignore */ } };
@@ -82,6 +83,7 @@ export default function Login() {
           )}
         </form>
       </div>
+      <RequestButton />
     </>
   );
 }

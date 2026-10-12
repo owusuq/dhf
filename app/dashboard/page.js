@@ -8,6 +8,7 @@ import Budget from './Budget';
 import Results from './Results';
 import DataSupport from './DataSupport';
 import DataSupportAdmin from './DataSupportAdmin';
+import RequestsAdmin from './RequestsAdmin';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -149,6 +150,12 @@ export default function Dashboard() {
   const [application, setApplication] = useState(null);
   const [msg, setMsg] = useState('');
   const [navOpen, setNavOpen] = useState(false);
+  const [pending, setPending] = useState(0);
+  const isAdminUser = !!(p && p.is_admin);
+  useEffect(() => {
+    if (!isAdminUser) return;
+    supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(({ count }) => setPending(count || 0));
+  }, [isAdminUser]);
 
   const load = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -198,19 +205,19 @@ export default function Dashboard() {
       <div className="wrap">
         <>
         <style dangerouslySetInnerHTML={{ __html: ".gnav-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.gnav-bar button{width:48px;height:40px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#fff;font-size:22px;line-height:1;cursor:pointer}.gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
-        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}</button></div>
+        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3', requests: 'Requests' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}{pending > 0 && <span className="rq-badge rq-corner">{pending > 99 ? '99+' : pending}</span>}</button></div>
         {navOpen && <nav className="gnav" role="tablist">
           {[
             ['Overview', [['home', 'Home']]],
             ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
             ['My account', [['plan', 'Feeding plan'], ['me', 'Profile']]],
-            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3']]]] : []),
+            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests']]]] : []),
           ].map(([title, items]) => (
             <div className="gnav-g" key={title}>
               <div className="gnav-t">{title}</div>
               <div className="gnav-r">
                 {items.map(([k, label]) => (
-                  <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setNavOpen(false); }}>{label}</button>
+                  <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setNavOpen(false); }}>{label}{k === 'requests' && pending > 0 && <span className="rq-badge">{pending > 99 ? '99+' : pending}</span>}</button>
                 ))}
               </div>
             </div>
@@ -250,6 +257,8 @@ export default function Dashboard() {
         </>)}
 
         {tab === 'budget' && p.is_admin && <Budget userId={user} />}
+
+        {tab === 'requests' && p.is_admin && <RequestsAdmin onCount={setPending} />}
 
         {tab === 'results' && <Results isAdmin={!!p.is_admin} />}
 
