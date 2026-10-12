@@ -148,6 +148,7 @@ export default function Dashboard() {
   const [pays, setPays] = useState([]);
   const [application, setApplication] = useState(null);
   const [msg, setMsg] = useState('');
+  const [navOpen, setNavOpen] = useState(false);
 
   const load = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
@@ -196,8 +197,9 @@ export default function Dashboard() {
       </div>
       <div className="wrap">
         <>
-        <style dangerouslySetInnerHTML={{ __html: ".gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
-        <nav className="gnav" role="tablist">
+        <style dangerouslySetInnerHTML={{ __html: ".gnav-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.gnav-bar button{width:48px;height:40px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#fff;font-size:22px;line-height:1;cursor:pointer}.gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
+        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}</button></div>
+        {navOpen && <nav className="gnav" role="tablist">
           {[
             ['Overview', [['home', 'Home']]],
             ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
@@ -208,12 +210,12 @@ export default function Dashboard() {
               <div className="gnav-t">{title}</div>
               <div className="gnav-r">
                 {items.map(([k, label]) => (
-                  <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>
+                  <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setNavOpen(false); }}>{label}</button>
                 ))}
               </div>
             </div>
           ))}
-        </nav>
+        </nav>}
         </>
 
         {tab === 'home' && (<>
