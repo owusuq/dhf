@@ -3,16 +3,15 @@ import { whoIsCalling, drive } from '../../../lib/results-server';
 
 const MAX_BYTES = 4 * 1024 * 1024; // hosting request limit
 
-// Admin uploads a result for one student. The file goes to the Google Drive folder.
+// Admin uploads for any student; a student uploads for themselves only. The file goes to the Google Drive folder.
 export async function POST(req) {
   try {
     const who = await whoIsCalling(req);
     if (who.error) return NextResponse.json({ error: who.error }, { status: who.status });
-    if (!who.isAdmin) return NextResponse.json({ error: 'Admins only' }, { status: 403 });
-
     const form = await req.formData();
     const file = form.get('file');
-    const userId = String(form.get('user_id') || '');
+    // Students can only upload for themselves. Admins can choose the student.
+    const userId = who.isAdmin ? String(form.get('user_id') || '') : who.user.id;
     const title = String(form.get('title') || '').trim();
     if (!file || typeof file === 'string' || !userId) {
       return NextResponse.json({ error: 'Choose a student and a file' }, { status: 400 });
