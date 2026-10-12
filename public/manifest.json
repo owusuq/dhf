@@ -1,0 +1,16 @@
+{
+  "name": "Daakyehene Portal",
+  "short_name": "DHF",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a2342",
+  "theme_color": "#0a2342",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
