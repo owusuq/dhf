@@ -3,6 +3,7 @@
   var C = {"momo":"0598124922","network":"MTN","name":"Kwadjo Owusu-Ansah Quarshie","ref":"dhf","email":"daakyehenefoundation@outlook.com"};
   var SHOW = ['/', '/login'];
   var d = document;
+  try { if (localStorage.getItem('dark') === '1') d.documentElement.classList.add('dark'); } catch (e) {}
 
   var m = d.createElement('meta'); m.name = 'theme-color'; m.content = '#0a2342'; d.head.appendChild(m);
   var l = d.createElement('link'); l.rel = 'manifest'; l.href = '/manifest.json'; d.head.appendChild(l);
@@ -36,6 +37,13 @@
   d.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
 
   function init() {
+    var t = d.createElement('button');
+    t.className = 'p-dark-toggle'; t.textContent = '\u{1F319}'; t.setAttribute('aria-label', 'Toggle dark mode');
+    t.onclick = function () {
+      var on = d.documentElement.classList.toggle('dark');
+      try { localStorage.setItem('dark', on ? '1' : '0'); } catch (e) {}
+    };
+    d.body.appendChild(t);
     var b = d.createElement('button');
     b.className = 'dn-btn';
     b.innerHTML = '<span class="dn-heart">\u2764\uFE0F</span> Donate';

@@ -165,3 +165,8 @@ tbody tr:hover{background:rgba(0,0,0,.03)}
 
 /* tabfix */
 nav button,nav [role=tab],header button{color:#fff!important}
+
+/* dark */
+.p-dark-toggle{position:fixed;right:16px;bottom:16px;z-index:9999;width:44px;height:44px;border-radius:50%;border:2px solid #c9a227;background:#0a2342;color:#fff;font-size:20px;cursor:pointer}
+html.dark{filter:invert(1) hue-rotate(180deg);background:#fff}
+html.dark img,html.dark video,html.dark .p-dark-toggle,html.dark .p-toast,html.dark .dn-btn,html.dark .dn-ov{filter:invert(1) hue-rotate(180deg)}
