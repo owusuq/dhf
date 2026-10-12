@@ -30,6 +30,7 @@ export default function Login() {
   const [f, setF] = useState({ email: '', password: '', name: '' });
   const [msg, setMsg] = useState(null);
   useEffect(() => {
+    router.prefetch('/dashboard');
     supabase.auth.getSession().then(async ({ data }) => { if (data.session) router.replace(await destination(data.session.user.id)); });
   }, [router]);
 
