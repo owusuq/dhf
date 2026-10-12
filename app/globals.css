@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
 :root{--ink:#0e1f33;--green:#12385e;--green-d:#0b2540;--gold:#c9971f;--bg:#f5f6f8;--card:#fff;--line:#dde2e8;--red:#b3342b;--ease:cubic-bezier(.2,.8,.2,1)}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;overscroll-behavior:none;scrollbar-gutter:stable}
@@ -127,10 +126,9 @@ button,a,input,select{touch-action:manipulation}
 /* clean */
 :root{--navy:#0a2342;--gold:#c9a227}
 html{scroll-behavior:smooth}
-body,button,input,select,textarea{font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+body,button,input,select,textarea{font-family:var(--font-jakarta),system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,h3{letter-spacing:-.02em;font-weight:700}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-main>*{animation:fadeUp .4s ease both}
 header,nav{background:linear-gradient(135deg,var(--navy),#13315c)!important;border-bottom:3px solid var(--gold)!important;color:#fff}
 header a,nav a{color:#fff}
 header a:hover,nav a:hover{color:var(--gold)}
@@ -164,3 +162,6 @@ tbody tr:hover{background:rgba(0,0,0,.03)}
 
 @media(max-width:640px){button,input,select,textarea,nav a{min-height:44px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* tabfix */
+nav button,nav [role=tab],header button{color:#fff!important}
