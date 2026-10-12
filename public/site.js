@@ -57,6 +57,40 @@
       try { localStorage.setItem('dark', on ? '1' : '0'); } catch (e) {}
     };
     d.body.appendChild(t);
+    var tOrig = t.onclick, tm = false, tdr = false, tsx, tsy, tox, toy;
+    t.style.touchAction = 'none';
+    t.style.cursor = 'grab';
+    try {
+      var tp = JSON.parse(localStorage.getItem('dtpos') || 'null');
+      if (tp) {
+        t.style.left = Math.min(tp.x, innerWidth - 50) + 'px';
+        t.style.top = Math.min(tp.y, innerHeight - 50) + 'px';
+        t.style.right = 'auto';
+        t.style.bottom = 'auto';
+      }
+    } catch (e) {}
+    t.addEventListener('pointerdown', function (e) {
+      tdr = true; tm = false; tsx = e.clientX; tsy = e.clientY;
+      var r = t.getBoundingClientRect(); tox = r.left; toy = r.top;
+      t.setPointerCapture(e.pointerId);
+    });
+    t.addEventListener('pointermove', function (e) {
+      if (!tdr) return;
+      var dx = e.clientX - tsx, dy = e.clientY - tsy;
+      if (!tm && Math.abs(dx) + Math.abs(dy) < 6) return;
+      tm = true;
+      t.style.left = Math.min(Math.max(0, tox + dx), innerWidth - t.offsetWidth) + 'px';
+      t.style.top = Math.min(Math.max(0, toy + dy), innerHeight - t.offsetHeight) + 'px';
+      t.style.right = 'auto';
+      t.style.bottom = 'auto';
+    });
+    t.addEventListener('pointerup', function () {
+      tdr = false;
+      if (tm) {
+        try { localStorage.setItem('dtpos', JSON.stringify({ x: parseInt(t.style.left), y: parseInt(t.style.top) })); } catch (e) {}
+      }
+    });
+    t.onclick = function () { if (tm) { tm = false; return; } tOrig(); };
     var b = d.createElement('button');
     b.className = 'dn-btn';
     b.innerHTML = '<span class="dn-heart">\u2764\uFE0F</span> Donate';
