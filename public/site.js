@@ -41,6 +41,38 @@
     b.innerHTML = '<span class="dn-heart">\u2764\uFE0F</span> Donate';
     b.onclick = open;
     d.body.appendChild(b);
+    b.style.touchAction = 'none';
+    b.style.cursor = 'grab';
+    try {
+      var p = JSON.parse(localStorage.getItem('dnpos') || 'null');
+      if (p) {
+        b.style.left = Math.min(p.x, innerWidth - 90) + 'px';
+        b.style.top = Math.min(p.y, innerHeight - 50) + 'px';
+        b.style.bottom = 'auto';
+      }
+    } catch (e) {}
+    var sx, sy, ox, oy, moved = false, drag = false;
+    b.addEventListener('pointerdown', function (e) {
+      drag = true; moved = false; sx = e.clientX; sy = e.clientY;
+      var r = b.getBoundingClientRect(); ox = r.left; oy = r.top;
+      b.setPointerCapture(e.pointerId);
+    });
+    b.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 6) return;
+      moved = true;
+      b.style.left = Math.min(Math.max(0, ox + dx), innerWidth - b.offsetWidth) + 'px';
+      b.style.top = Math.min(Math.max(0, oy + dy), innerHeight - b.offsetHeight) + 'px';
+      b.style.bottom = 'auto';
+    });
+    b.addEventListener('pointerup', function () {
+      drag = false;
+      if (moved) {
+        try { localStorage.setItem('dnpos', JSON.stringify({ x: parseInt(b.style.left), y: parseInt(b.style.top) })); } catch (e) {}
+      }
+    });
+    b.onclick = function () { if (moved) { moved = false; return; } open(); };
     function sync() { b.style.display = true ? 'flex' : 'none'; }
     ['pushState', 'replaceState'].forEach(function (k) {
       var orig = history[k];
