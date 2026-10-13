@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import RequestButton from './RequestButton';
+import InstallPrompt from './InstallPrompt';
 
 const FLAG = 'dhf-apply';
 const rememberApply = () => { try { localStorage.setItem(FLAG, '1'); } catch (e) { /* ignore */ } };
@@ -30,6 +31,7 @@ export default function Login() {
   const [viewingResults, setViewingResults] = useState(false);
   const [f, setF] = useState({ email: '', password: '', name: '' });
   const [msg, setMsg] = useState(null);
+  const [show, setShow] = useState(false);
   useEffect(() => {
     router.prefetch('/dashboard');
     supabase.auth.getSession().then(async ({ data }) => { if (data.session) router.replace(await destination(data.session.user.id)); });
@@ -44,6 +46,12 @@ export default function Login() {
     if (res.error) return setMsg({ err: true, t: res.error.message });
     if (mode === 'up' && !res.data.session) return setMsg({ t: 'Check your email to confirm your account, then sign in. After you sign in, you will go straight to the application form.' });
     router.replace(await destination(res.data.session.user.id));
+  }
+  async function forgot() {
+    if (!f.email) return setMsg({ err: true, t: 'Enter your email above first, then tap Forgot password.' });
+    const { error } = await supabase.auth.resetPasswordForEmail(f.email, { redirectTo: window.location.origin + '/reset' });
+    if (error) return setMsg({ err: true, t: error.message });
+    setMsg({ t: 'If that email has an account, a reset link is on its way. Check your inbox and spam folder.' });
   }
   function startResults() {
     rememberResults();
@@ -89,7 +97,12 @@ export default function Login() {
           {viewingResults && <div className="msg">Sign in to see your results.</div>}
           {mode === 'up' && (<><label htmlFor="n">Full name</label><input id="n" required autoComplete="name" value={f.name} onChange={set('name')} /></>)}
           <label htmlFor="e">Email</label><input id="e" type="email" required autoComplete="email" value={f.email} onChange={set('email')} />
-          <label htmlFor="p">Password</label><input id="p" type="password" minLength={6} required autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={f.password} onChange={set('password')} />
+          <label htmlFor="p">Password</label>
+          <div className="pw">
+            <input id="p" type={show ? 'text' : 'password'} minLength={6} required autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={f.password} onChange={set('password')} />
+            <button type="button" className="pw-eye" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button>
+          </div>
+          {mode === 'in' && <p className="lg-forgot"><button type="button" className="lg-link" onClick={forgot}>Forgot password?</button></p>}
           {msg && <div className={'msg' + (msg.err ? ' err' : '')}>{msg.t}</div>}
           <p><button className="btn lg-go">{mode === 'in' ? 'Sign in' : 'Create account'}</button></p>
           {!busyMode && (
@@ -110,6 +123,7 @@ export default function Login() {
         <a className="btn lg-mail" href={'mailto:' + EMAIL + '?subject=Student%20Portal%20enquiry'}>{EMAIL}</a>
       </section>
       <RequestButton />
+      <InstallPrompt />
     </>
   );
 }

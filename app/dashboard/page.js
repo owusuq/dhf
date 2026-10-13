@@ -237,7 +237,7 @@ export default function Dashboard() {
           <ReceivedPayments userId={user} />
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
-            <h2>Hello{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
+            <h2>{(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
             <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: pct + '%' }} /></div>
             <div className="grid">
               <div className="stat"><small>Paid</small><b>{money(paid)}</b></div>
