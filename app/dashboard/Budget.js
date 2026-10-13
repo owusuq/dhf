@@ -25,7 +25,8 @@ function compact(d) {
   return { ...d, spends: keep, archived: Number(d.archived || 0) + sum(dropped) };
 }
 
-function Items({ title, hint, items, onChange, dated }) {
+function Items({ title, hint, items, onChange, dated, totalBtn }) {
+  const [showSum, setShowSum] = useState(false);
   const blank = { name: '', amount: '', date: todayStr() };
   const [f, setF] = useState(blank);
   const [editing, setEditing] = useState(null);
@@ -59,6 +60,7 @@ function Items({ title, hint, items, onChange, dated }) {
           {editing && <button type="button" className="btn alt" onClick={() => { setEditing(null); setF(blank); }}>Cancel</button>}
         </p>
       </form>
+      {totalBtn && (<p style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><button type="button" onClick={() => setShowSum((v) => !v)} style={{ padding: '4px 14px', fontSize: 12, fontWeight: 700, color: '#0b1f3a', background: 'linear-gradient(135deg,#f5d76e,#d4a017)', border: 'none', borderRadius: 999, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>{showSum ? 'Hide' : 'Total'}</button>{showSum && (<span style={{ fontSize: 13, fontWeight: 700, color: '#0b1f3a', background: '#fff8dc', border: '1px solid #d4a017', padding: '3px 12px', borderRadius: 999 }}>{gbp(sum(items))}</span>)}</p>)}
       {list.length === 0 && <p>Nothing yet.</p>}
       {list.map((x) => (
         <div className="row" key={x.id}>
@@ -182,7 +184,7 @@ export default function Budget({ userId }) {
           {showTotal && (<span style={{ fontSize: 13, fontWeight: 700, color: '#0b1f3a', background: '#fff8dc', border: '1px solid #d4a017', padding: '3px 12px', borderRadius: 999 }}>{gbp(keyedTotal)}</span>)}
         </p>
       </section>
-      <Items title="Bills and fixed costs" hint="Rent, phone, transport pass: anything you must pay this period." items={d.bills} onChange={(bills) => upd({ bills })} />
+      <Items title="Bills and fixed costs" hint="Rent, phone, transport pass: anything you must pay this period." items={d.bills} totalBtn onChange={(bills) => upd({ bills })} />
       <Items title="Spending" hint="Add what you spend each day." items={d.spends} dated onChange={(spends) => upd({ spends })} />
     </>
   );
