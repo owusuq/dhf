@@ -56,35 +56,59 @@ export default function Login() {
     setMode('up');
   }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const EMAIL = 'daakyehenefoundation@outlook.com';
+  const busyMode = applying || viewingResults;
   return (
     <>
-      <div className="top"><Link href="/" className="logo-link" aria-label="Home"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></Link></div>
-      <div className="wrap" style={{ maxWidth: 440 }}>
-        <form className="card" onSubmit={go}>
-          <h1>{mode === 'in' ? 'Sign in' : 'Create your account'}</h1>
-          <p>Track your fees, payment dates and receipts in one place.</p>
+      <div className="top">
+        <Link href="/" className="logo-link" aria-label="Daakyehene Foundation home"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></Link>
+        <a href="#contact">Contact us</a>
+      </div>
+
+      <main className="lg">
+        <section className="lg-hero">
+          <span className="lg-pill">Student Portal</span>
+          <h1>Welcome to the Daakyehene Foundation</h1>
+          <p className="lg-lead">Everything you need as a student, in one simple place.</p>
+          <ul className="lg-points">
+            <li>See what you have paid and what is left</li>
+            <li>Get payment reminders on your phone calendar</li>
+            <li>View your results and apply for support</li>
+          </ul>
+          <p className="lg-motto">Empowering People &middot; Building Communities &middot; Creating a Brighter Future</p>
+        </section>
+
+        <form className="card lg-card" onSubmit={go}>
+          <div className="tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'on' : ''} onClick={() => setMode('in')}>Sign in</button>
+            <button type="button" role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'on' : ''} onClick={() => setMode('up')}>Create account</button>
+          </div>
+          <h2>{mode === 'in' ? 'Welcome back' : 'Create your account'}</h2>
+          <p className="lg-sub">{mode === 'in' ? 'Sign in to see your fees, payment dates and receipts.' : 'It takes less than a minute.'}</p>
           {applying && <div className="msg">To apply, you need an account. {mode === 'up' ? 'Create one below.' : 'Sign in below.'} You will go straight to the application form afterwards.</div>}
           {viewingResults && <div className="msg">Sign in to see your results.</div>}
-          {mode === 'up' && (<><label htmlFor="n">Full name</label><input id="n" required value={f.name} onChange={set('name')} /></>)}
-          <label htmlFor="e">Email</label><input id="e" type="email" required value={f.email} onChange={set('email')} />
-          <label htmlFor="p">Password</label><input id="p" type="password" minLength={6} required value={f.password} onChange={set('password')} />
+          {mode === 'up' && (<><label htmlFor="n">Full name</label><input id="n" required autoComplete="name" value={f.name} onChange={set('name')} /></>)}
+          <label htmlFor="e">Email</label><input id="e" type="email" required autoComplete="email" value={f.email} onChange={set('email')} />
+          <label htmlFor="p">Password</label><input id="p" type="password" minLength={6} required autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={f.password} onChange={set('password')} />
           {msg && <div className={'msg' + (msg.err ? ' err' : '')}>{msg.t}</div>}
-          <p><button className="btn">{mode === 'in' ? 'Sign in' : 'Create account'}</button></p>
-          <button type="button" className="btn alt sm" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
-            {mode === 'in' ? 'New student? Create an account' : 'Have an account? Sign in'}
-          </button>
-          {!applying && !viewingResults && (
-            <p style={{ marginTop: '1rem' }}>
-              <button type="button" className="btn alt" onClick={startApply}>Apply to the Daakyehene Foundation</button>
-            </p>
-          )}
-          {!applying && !viewingResults && (
-            <p>
-              <button type="button" className="btn alt" onClick={startResults}>View my results</button>
-            </p>
+          <p><button className="btn lg-go">{mode === 'in' ? 'Sign in' : 'Create account'}</button></p>
+          {!busyMode && (
+            <>
+              <div className="lg-or"><span>or</span></div>
+              <div className="lg-quick">
+                <button type="button" className="btn alt" onClick={startApply}>Apply to the Foundation</button>
+                <button type="button" className="btn alt" onClick={startResults}>View my results</button>
+              </div>
+            </>
           )}
         </form>
-      </div>
+      </main>
+
+      <section className="lg-contact" id="contact">
+        <h2>Contact us</h2>
+        <p>Questions about your fees, your account or support? Send us an email and we will get back to you.</p>
+        <a className="btn lg-mail" href={'mailto:' + EMAIL + '?subject=Student%20Portal%20enquiry'}>{EMAIL}</a>
+      </section>
       <RequestButton />
     </>
   );
