@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -18,8 +19,8 @@ const CSS = `
 .sf-row .bal small{display:block;color:#6b7785}
 .sf-mini{height:6px;border-radius:99px;background:#e6ebf1;overflow:hidden;margin-top:5px}
 .sf-mini i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#f0c75e)}
-.sf-back{position:fixed;inset:0;background:rgba(10,25,45,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
-.sf-modal{background:#fff;width:100%;max-width:780px;max-height:calc(100dvh - 32px);overflow-y:auto;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:18px 20px 22px;position:relative}
+.sf-back{position:fixed;inset:0;background:rgba(10,25,45,.55);z-index:20000;display:flex;align-items:center;justify-content:center;padding:16px}
+.sf-modal{background:#fff;width:100%;max-width:780px;max-height:calc(100dvh - 32px);overflow-y:auto;overscroll-behavior:contain;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:18px 20px 22px;position:relative}
 .sf-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;position:sticky;top:-18px;background:#fff;margin:-18px -20px 0;padding:16px 20px 10px;z-index:2;border-bottom:1px solid var(--line)}
 .sf-head h2{margin:0}
 .sf-x{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:20px;cursor:pointer;flex:none}
@@ -196,7 +197,7 @@ export default function StudentFees() {
         })}
       </div>
 
-      {sel && (
+      {sel && typeof document !== 'undefined' && createPortal(
         <div className="sf-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpenId(null); }}>
           <div className="sf-modal" role="dialog" aria-modal="true" aria-label={'Edit ' + (sel.full_name || sel.email)}>
             <div className="sf-head">
@@ -276,7 +277,8 @@ export default function StudentFees() {
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
