@@ -51,7 +51,7 @@ export default function Reset() {
               <label htmlFor="rp1">New password</label>
               <div className="pw">
                 <input id="rp1" type={show ? 'text' : 'password'} minLength={6} required autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
-                <button type="button" className="pw-eye" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'}</button>
+                <button type="button" className="pw-eye" onMouseDown={(e) => e.preventDefault()} onClick={() => setShow((v) => !v)}>{show ? 'Hide' : 'Show'}</button>
               </div>
               <label htmlFor="rp2">Confirm new password</label>
               <input id="rp2" type={show ? 'text' : 'password'} minLength={6} required autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} />

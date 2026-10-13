@@ -100,7 +100,7 @@ export default function Login() {
           <label htmlFor="p">Password</label>
           <div className="pw">
             <input id="p" type={show ? 'text' : 'password'} minLength={6} required autoComplete={mode === 'in' ? 'current-password' : 'new-password'} value={f.password} onChange={set('password')} />
-            <button type="button" className="pw-eye" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button>
+            <button type="button" className="pw-eye" onMouseDown={(e) => e.preventDefault()} onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? 'Hide' : 'Show'}</button>
           </div>
           {mode === 'in' && <p className="lg-forgot"><button type="button" className="lg-link" onClick={forgot}>Forgot password?</button></p>}
           {msg && <div className={'msg' + (msg.err ? ' err' : '')}>{msg.t}</div>}

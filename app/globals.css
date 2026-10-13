@@ -307,3 +307,7 @@ input,select,textarea{background:rgba(255,255,255,.62);border:1px solid rgba(255
   .ck-btns{margin:0;flex:0 0 auto}
   .ck-btns .btn{flex:0 0 auto;padding:.4rem 1rem}
 }
+
+/* password Show/Hide: instant, no jump, no blur lag */
+.pw-eye,.pw-eye:hover,.pw-eye:active{transition:none!important;filter:none!important;transform:translateY(-50%)!important;-webkit-backdrop-filter:none;backdrop-filter:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.pw-eye:active{background:#d5dfeb}
