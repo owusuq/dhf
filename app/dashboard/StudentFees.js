@@ -42,7 +42,11 @@ export default function StudentFees() {
   const [q, setQ] = useState('');
   const [openId, setOpenId] = useState(null);
   const [note, setNote] = useState(null); // { text, err }
-  const [det, setDet] = useState({ full_name: '', level: '', phone: '', fees_total: '' });
+  const [det, setDet] = useState({ full_name: '', level: '', phone: '' });
+  const [full, setFull] = useState(''); // full fees the student must pay in total
+  const [onlyOwing, setOnlyOwing] = useState(false);
+  const [showOwing, setShowOwing] = useState(true);
+  const [owingIn, setOwingIn] = useState(''); // owing typed by admin
   const [edit, setEdit] = useState(null); // { id, paid_on, amount, note }
   const [add, setAdd] = useState({ paid_on: today(), amount: '', note: '' });
   const [busy, setBusy] = useState(false);
@@ -73,20 +77,31 @@ export default function StudentFees() {
   function openStudent(s) {
     setNote(null); setEdit(null);
     setAdd({ paid_on: today(), amount: '', note: '' });
-    setDet({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '', fees_total: String(s.fees_total ?? 0) });
+    setDet({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '' });
+    setFull(Number(s.fees_total) ? String(s.fees_total) : '');
+    const pd = pays.filter((x) => x.user_id === s.id).reduce((t, x) => t + Number(x.amount), 0);
+    setOwingIn(Number(s.fees_total) ? String(Math.max(0, Number(s.fees_total) - pd)) : '');
     setOpenId(s.id);
   }
 
   async function saveDetails(s) {
-    const fees = Number(det.fees_total);
-    if (isNaN(fees) || fees < 0) return say('Total fees must be 0 or more.', true);
     setBusy(true);
     const { data, error } = await supabase.from('profiles')
-      .update({ full_name: det.full_name.trim(), level: det.level.trim(), phone: det.phone.trim(), fees_total: fees })
+      .update({ full_name: det.full_name.trim(), level: det.level.trim(), phone: det.phone.trim() })
       .eq('id', s.id).select('id');
     setBusy(false);
     if (error || !data || !data.length) return say(error ? error.message : 'Not saved. Run supabase/admin_edit.sql in Supabase first.', true);
     say('Saved.'); load();
+  }
+  // Enter the full fees once. The balance owing = full fees minus everything paid so far.
+  async function saveFull(s, override) {
+    const fees = override !== undefined ? override : Number(full);
+    if ((override === undefined && full === '') || isNaN(fees) || fees < 0) return say('Enter the full fees amount.', true);
+    setBusy(true);
+    const { data, error } = await supabase.from('profiles').update({ fees_total: fees }).eq('id', s.id).select('id');
+    setBusy(false);
+    if (error || !data || !data.length) return say(error ? error.message : 'Not saved. Run supabase/admin_edit.sql in Supabase first.', true);
+    say(fees - paidBy(s.id) > 0 ? `Saved. ${s.full_name || 'The student'} owes ${money(fees - paidBy(s.id))}.` : 'Saved. Fully paid.'); load();
   }
   async function addPayment(s) {
     const amount = Number(add.amount);
@@ -118,7 +133,11 @@ export default function StudentFees() {
 
   const paidBy = (id) => pays.filter((p) => p.user_id === id).reduce((t, p) => t + Number(p.amount), 0);
   const term = q.trim().toLowerCase();
-  const list = students.filter((s) => !term || (s.full_name || '').toLowerCase().includes(term) || (s.email || '').toLowerCase().includes(term));
+  const owes = (s) => Number(s.fees_total || 0) - paidBy(s.id) > 0;
+  const list = students
+    .filter((s) => !term || (s.full_name || '').toLowerCase().includes(term) || (s.email || '').toLowerCase().includes(term))
+    .filter((s) => !onlyOwing || owes(s));
+  const notSet = students.filter((s) => !Number(s.fees_total || 0)).length;
 
   const allTotal = students.reduce((t, s) => t + Number(s.fees_total || 0), 0);
   const allPaid = students.reduce((t, s) => t + paidBy(s.id), 0);
@@ -140,9 +159,16 @@ export default function StudentFees() {
       <div className="sf-sum">
         <div><small>Total fees</small><b>{money(allTotal)}</b></div>
         <div><small>Received</small><b>{money(allPaid)}</b></div>
-        <div><small>Outstanding</small><b>{money(allBal)}</b></div>
+        <div><small>Total owing</small><b>{showOwing ? money(allBal) : '••••'}</b></div>
       </div>
       <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
+      <p style={{ margin: '8px 0 0' }}>
+        <button type="button" className="btn sm alt" onClick={() => setShowOwing(!showOwing)} style={{ marginRight: 10 }}>{showOwing ? 'Hide owing' : 'Show owing'}</button>
+        <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+          <input type="checkbox" style={{ width: 'auto' }} checked={onlyOwing} onChange={(e) => setOnlyOwing(e.target.checked)} /> Show only students who owe
+        </label>
+        {notSet > 0 && <small style={{ display: 'block', color: '#6b7785' }}>{notSet} student{notSet > 1 ? 's have' : ' has'} no full fees entered yet.</small>}
+      </p>
       {!sel && note && <div className={'msg' + (note.err ? ' err' : '')}>{note.text}</div>}
       {list.length === 0 && <p><small>No students found.</small></p>}
       <div style={{ marginTop: 8 }}>
@@ -158,8 +184,8 @@ export default function StudentFees() {
                 <div className="sf-mini"><i style={{ width: pct + '%' }} /></div>
               </span>
               <span className="bal">
-                <small>Balance</small>
-                <b className={total - paid < 0 ? '' : ''}>{money(Math.max(0, total - paid))}</b>
+                <small>Owing</small>
+                <b>{showOwing ? money(Math.max(0, total - paid)) : '••••'}</b>
               </span>
               <span aria-hidden="true">›</span>
             </button>
@@ -181,13 +207,28 @@ export default function StudentFees() {
             <div className="sf-sum">
               <div><small>Total fees</small><b>{money(selTotal)}</b></div>
               <div><small>Paid so far</small><b>{money(selPaid)}</b></div>
-              <div><small>{selBal < 0 ? 'Overpaid' : 'Balance'}</small><b>{money(Math.abs(selBal))}</b></div>
+              <div><small>{selBal < 0 ? 'Overpaid' : 'Owing'}</small><b>{money(Math.abs(selBal))}</b></div>
             </div>
             <div className="bar" role="progressbar" aria-valuenow={selPct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: selPct + '%' }} /></div>
 
             {note && <div className={'msg' + (note.err ? ' err' : ' sf-ok')}>{note.text}</div>}
 
             <div className="sf-sec sf-top">
+              <h3>Full fees &amp; amount owing</h3>
+              <p style={{ margin: '0 0 8px' }}><small>Type either one. The other updates by itself. Paid so far: <b>{money(selPaid)}</b></small></p>
+              <div className="sf-2">
+                <div><label>Full fees (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 2690" value={full}
+                  onChange={(e) => { const v = e.target.value; setFull(v); setOwingIn(v === '' ? '' : String(Math.max(0, Number(v) - selPaid))); }} /></div>
+                <div><label>Amount owing (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 876" value={owingIn}
+                  onChange={(e) => { const v = e.target.value; setOwingIn(v); setFull(v === '' ? '' : String(selPaid + Number(v))); }} /></div>
+              </div>
+              <p style={{ margin: '10px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" className="btn" disabled={busy} onClick={() => saveFull(sel)}>Save</button>
+                <button type="button" className="btn alt" disabled={busy} onClick={() => { setFull(String(selPaid)); setOwingIn('0'); saveFull(sel, selPaid); }}>Mark fully paid</button>
+              </p>
+            </div>
+
+            <div className="sf-sec">
               <h3>Top up / add a payment</h3>
               <div className="sf-2">
                 <div><label>Amount (GH₵)</label><input type="number" min="0" step="0.01" placeholder="0.00" value={add.amount} onChange={(e) => setAdd({ ...add, amount: e.target.value })} /></div>
@@ -223,12 +264,11 @@ export default function StudentFees() {
             </div>
 
             <div className="sf-sec">
-              <h3>Student details &amp; total fees</h3>
+              <h3>Student details</h3>
               <div className="sf-2">
                 <div><label>Full name</label><input value={det.full_name} onChange={(e) => setDet({ ...det, full_name: e.target.value })} /></div>
                 <div><label>Level</label><input value={det.level} onChange={(e) => setDet({ ...det, level: e.target.value })} /></div>
                 <div><label>Phone</label><input type="tel" value={det.phone} onChange={(e) => setDet({ ...det, phone: e.target.value })} /></div>
-                <div><label>Total fees (GH₵)</label><input type="number" min="0" step="0.01" value={det.fees_total} onChange={(e) => setDet({ ...det, fees_total: e.target.value })} /></div>
               </div>
               <p style={{ margin: '10px 0 0', display: 'flex', gap: 8 }}>
                 <button type="button" className="btn" disabled={busy} onClick={() => saveDetails(sel)}>Save details</button>

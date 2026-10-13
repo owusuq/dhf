@@ -192,8 +192,8 @@ export default function Dashboard() {
 
   async function saveProfile(e) {
     e.preventDefault();
-    const { full_name, level, birthday, phone, payment_option, fees_total } = p;
-    const { error } = await supabase.from('profiles').update({ full_name, level, birthday: birthday || null, phone, payment_option, fees_total: Number(fees_total) || 0 }).eq('id', user);
+    const { full_name, level, birthday, phone, payment_option } = p;
+    const { error } = await supabase.from('profiles').update({ full_name, level, birthday: birthday || null, phone, payment_option }).eq('id', user);
     setMsg(error ? error.message : 'Saved.');
   }
   const sp = (k) => (e) => setP({ ...p, [k]: e.target.value });
@@ -245,6 +245,13 @@ export default function Dashboard() {
               <div className="stat"><small>Birthday</small><b>{bd === null ? 'Add yours in Profile' : bd === 0 ? 'Today' : bd + ' days'}</b></div>
             </div>
           </section>
+          <section className="card" style={{ border: '2px solid #c9a227', background: '#fff8e1' }}>
+            <h2>Your fees</h2>
+            {total > 0 ? (<>
+              <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{total - paid > 0 ? `You owe ${money(total - paid)}` : total - paid < 0 ? `Overpaid by ${money(paid - total)}` : 'Fully paid. Thank you!'}</b></p>
+              <p><small>Full fees {money(total)} · Paid so far {money(paid)}</small></p>
+            </>) : <p>Your full fees have not been entered yet. The Foundation will update this soon.</p>}
+          </section>
           <section className="card">
             <h2>Apply to the Daakyehene Foundation</h2>
             {application
@@ -289,7 +296,7 @@ export default function Dashboard() {
                 <select id="e" value={p.payment_option || ''} onChange={sp('payment_option')}>
                   <option value="">Choose…</option><option>Weekly</option><option>Monthly</option><option>Full payment</option>
                 </select></div>
-              <div><label htmlFor="f">Total fees (GH₵)</label><input id="f" type="number" min="0" value={p.fees_total ?? 0} onChange={sp('fees_total')} /></div>
+              <div><label htmlFor="f">Total fees (GH₵)</label><input id="f" type="number" value={p.fees_total ?? 0} readOnly disabled title="Set by the Foundation" /></div>
             </div>
             {msg && <div className="msg">{msg}</div>}
             <p>
