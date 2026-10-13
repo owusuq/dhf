@@ -58,6 +58,14 @@ export default function SendPayment({ adminId }) {
     load();
   }
 
+  async function clearAll() {
+    if (!confirm('Delete ALL sent payment records? Students will no longer see them either. This cannot be undone.')) return;
+    const { error } = await supabase.from('sent_payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (error) return setMsg({ err: true, t: error.message });
+    setSent(null);
+    load();
+  }
+
   const sentStudent = sent ? find(sent.user_id) : null;
   const first = sentStudent ? (sentStudent.full_name || 'there').split(' ')[0] : '';
   const text = sent ? `Hello ${first}, the Daakyehene Foundation has sent you ${money(sent.amount)} for: ${sent.reason}. You can also see it on your portal Home page. Daakyehene Foundation` : '';
@@ -94,6 +102,7 @@ export default function SendPayment({ adminId }) {
 
       <section className="card">
         <h2>Recent payments sent</h2>
+        {rows.length > 0 && <p><button className="btn del sm" onClick={clearAll}>Clear all</button></p>}
         {rows.length === 0 && <p>None yet.</p>}
         {rows.map((r) => (
           <div className="row" key={r.id}>
