@@ -261,3 +261,12 @@ input,select,textarea{background:rgba(255,255,255,.62);border:1px solid rgba(255
 .dn-ov,.rq-ov{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.card,.lg-contact,.bud-stat,.dn-card,.rq-card,.ins{background:rgba(255,255,255,.94)}.top,.foot,.gnav{background:#0b2540!important}}
 @media (prefers-reduced-transparency:reduce){.card,.lg-contact,.bud-stat,.dn-card,.rq-card,.ins{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}.top,.foot{background:#0b2540;-webkit-backdrop-filter:none;backdrop-filter:none}}
+
+/* cookie notice */
+.ck{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(94vw,460px);z-index:10002;padding:.95rem 1.05rem;border-radius:20px;background:rgba(255,255,255,.74);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.9);box-shadow:0 16px 44px rgba(10,35,66,.3),inset 0 1px 0 rgba(255,255,255,.95);color:#0a2342;animation:fadeUp .4s var(--ease) both}
+.ck b{display:block;font-size:1rem;margin-bottom:.2rem}
+.ck p{margin:0;font-size:.88rem;line-height:1.45;color:#0a2342}
+.ck-btns{display:flex;gap:.5rem;margin-top:.7rem}
+.ck-btns .btn{flex:1;padding:.55rem}
+.has-consent-bar .ins{bottom:190px}
+.foot-link{min-height:0!important;padding:0;border:0;background:none;color:#f0d78a;font:inherit;font-size:.82rem;text-decoration:underline;cursor:pointer}

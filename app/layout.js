@@ -1,6 +1,7 @@
 import './globals.css';
 import { Bricolage_Grotesque, Source_Sans_3 } from 'next/font/google';
 import Footer from './Footer';
+import CookieNotice from './CookieNotice';
 
 const display = Bricolage_Grotesque({ subsets: ['latin'], variable: '--display' });
 const body = Source_Sans_3({ subsets: ['latin'], variable: '--body' });
@@ -13,6 +14,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${display.variable} ${body.variable}`}>
         <div className="page">{children}</div>
+        <CookieNotice />
         <Footer />
       <script src="/site.js" defer></script></body>
     </html>
