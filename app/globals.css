@@ -270,3 +270,40 @@ input,select,textarea{background:rgba(255,255,255,.62);border:1px solid rgba(255
 .ck-btns .btn{flex:1;padding:.55rem}
 .has-consent-bar .ins{bottom:190px}
 .foot-link{min-height:0!important;padding:0;border:0;background:none;color:#f0d78a;font:inherit;font-size:.82rem;text-decoration:underline;cursor:pointer}
+
+/* responsive fixes */
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.ck,.ins{left:0;right:0;margin:0 auto;transform:none;width:min(calc(100% - 24px),460px);bottom:calc(12px + env(safe-area-inset-bottom));max-height:calc(100dvh - 24px);overflow-y:auto;animation:slideUp .4s var(--ease) both}
+.has-consent-bar .ins{display:none}
+.ck-btns,.ins-btns{flex-wrap:wrap}
+.ck-btns .btn,.ins-btns .btn{flex:1 1 120px}
+.card,.grid>*,.wrap>*{min-width:0}
+.card{overflow-wrap:break-word}
+.dn-card,.rq-card{max-height:calc(100dvh - 32px);overflow-y:auto}
+.rq-ov,.dn-ov{padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+@media (max-width:600px){
+  .dn-btn{padding:8px 14px;font-size:13px;left:10px;bottom:10px;min-height:40px}
+  .rq-fab{padding:7px 14px;font-size:13px;left:10px;bottom:58px;min-height:40px}
+  .p-dark-toggle{width:40px;height:40px;right:10px;bottom:10px;font-size:17px;min-height:40px}
+  .foot{padding-bottom:calc(4.5rem + env(safe-area-inset-bottom))}
+}
+@media (max-width:420px){
+  .top{gap:.4rem;padding:.55rem .7rem;border-radius:18px}
+  .top img{height:38px;width:38px}
+  .top a,.top button{padding:.35rem .6rem;font-size:.85rem}
+  .lg{padding-left:.6rem;padding-right:.6rem}
+  .lg-hero,.lg-card,.lg-contact{border-radius:20px}
+}
+@media (max-height:480px){
+  .ck,.ins{padding:.6rem .8rem}
+  .ck p{font-size:.8rem}
+  .ck-btns,.ins-btns{margin-top:.45rem}
+  .ck-btns .btn,.ins-btns .btn{padding:.35rem}
+}
+@media (max-height:480px) and (min-width:560px){
+  .ck{width:min(calc(100% - 24px),680px);display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .9rem}
+  .ck b{flex-basis:100%;margin:0}
+  .ck p{flex:1 1 280px}
+  .ck-btns{margin:0;flex:0 0 auto}
+  .ck-btns .btn{flex:0 0 auto;padding:.4rem 1rem}
+}
