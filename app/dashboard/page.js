@@ -12,6 +12,7 @@ import RequestsAdmin from './RequestsAdmin';
 import RequestTab from './RequestTab';
 import SendPayment from './SendPayment';
 import ReceivedPayments from './ReceivedPayments';
+import StudentFees from './StudentFees';
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -208,13 +209,13 @@ export default function Dashboard() {
       <div className="wrap">
         <>
         <style dangerouslySetInnerHTML={{ __html: ".gnav-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.gnav-bar button{width:48px;height:40px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#fff;font-size:22px;line-height:1;cursor:pointer}.gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
-        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3', requests: 'Requests', request: 'Request', sendpay: 'Send payment' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}{pending > 0 && <span className="rq-badge rq-corner">{pending > 99 ? '99+' : pending}</span>}</button></div>
+        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3', requests: 'Requests', request: 'Request', sendpay: 'Send payment', fees: 'Student fees' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}{pending > 0 && <span className="rq-badge rq-corner">{pending > 99 ? '99+' : pending}</span>}</button></div>
         {navOpen && <nav className="gnav" role="tablist">
           {[
             ['Overview', [['home', 'Home']]],
             ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
             ['My account', [['plan', 'Feeding plan'], ['me', 'Profile'], ['request', 'Request']]],
-            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests'], ['sendpay', 'Send payment']]]] : []),
+            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests'], ['sendpay', 'Send payment'], ['fees', 'Student fees']]]] : []),
           ].map(([title, items]) => (
             <div className="gnav-g" key={title}>
               <div className="gnav-t">{title}</div>
@@ -265,6 +266,8 @@ export default function Dashboard() {
         {tab === 'requests' && p.is_admin && <RequestsAdmin onCount={setPending} />}
 
         {tab === 'sendpay' && p.is_admin && <SendPayment adminId={user} />}
+
+        {tab === 'fees' && p.is_admin && <StudentFees />}
 
         {tab === 'request' && <RequestTab name={p.full_name} contact={p.phone || p.email} />}
 
