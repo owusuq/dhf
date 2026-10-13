@@ -1,5 +1,4 @@
--- Run ONCE in Supabase: SQL Editor > New query > paste > Run (safe to run again)
--- Payments an admin sends to a student. Students see only their own and cannot change them.
+
 create table if not exists public.sent_payments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
