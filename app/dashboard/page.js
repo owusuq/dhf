@@ -202,8 +202,8 @@ export default function Dashboard() {
   return (
     <>
       <div className="top">
-        <img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} />
-        <b>Daakyehene Foundation</b>
+        <Link href="/dashboard" className="logo-link" aria-label="Home" onClick={() => { setTab('home'); setNavOpen(false); }}><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} />
+        <b>Daakyehene Foundation</b></Link>
         {p.is_admin && <Link href="/admin">Admin</Link>}
         <button onClick={async () => { await supabase.auth.signOut(); router.replace('/'); }}>Sign out</button>
       </div>

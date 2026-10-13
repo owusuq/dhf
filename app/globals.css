@@ -184,3 +184,8 @@ html.dark img,html.dark video,html.dark .p-dark-toggle,html.dark .p-toast,html.d
 .gnav-bar button{position:relative}
 .rq-badge.rq-corner{position:absolute;top:-8px;right:-8px;margin:0;box-shadow:0 0 0 2px #fff}
 html.dark .rq-fab,html.dark .rq-ov,html.dark .rq-badge{filter:invert(1) hue-rotate(180deg)}
+
+.top .logo-link{display:flex;align-items:center;gap:.75rem;flex:1;min-width:0;border:0;padding:0;border-radius:0;background:none;font-weight:inherit}
+.top .logo-link:hover{background:none}
+.top .logo-link:hover img{transform:scale(1.06)}
+.foot a{display:inline-block}

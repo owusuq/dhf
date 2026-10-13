@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '../lib/supabase';
 import RequestButton from './RequestButton';
 
@@ -57,7 +58,7 @@ export default function Login() {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   return (
     <>
-      <div className="top"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></div>
+      <div className="top"><Link href="/" className="logo-link" aria-label="Home"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></Link></div>
       <div className="wrap" style={{ maxWidth: 440 }}>
         <form className="card" onSubmit={go}>
           <h1>{mode === 'in' ? 'Sign in' : 'Create your account'}</h1>
