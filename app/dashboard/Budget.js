@@ -81,6 +81,7 @@ export default function Budget({ userId }) {
   const dRef = useRef(d);
   const dirty = useRef(false);
   const timer = useRef(null);
+  const [showTotal, setShowTotal] = useState(false);
   dRef.current = d;
 
   const upd = (patch) => { dirty.current = true; setD((cur) => ({ ...cur, ...patch, ts: Date.now() })); };
@@ -151,6 +152,7 @@ export default function Budget({ userId }) {
   const daysLeft = Math.max(1, Math.round((day(d.end || t) - day(t)) / 86400000) + 1);
   const daily = (money - bills - before) / daysLeft;
   const left = daily - spentToday;
+  const keyedTotal = bills + spentAll;
 
   return (
     <>
@@ -174,7 +176,11 @@ export default function Budget({ userId }) {
           <div><label htmlFor="be">Period ends on</label><input id="be" type="date" value={d.end} onChange={(e) => upd({ end: e.target.value })} /></div>
         </div>
         <p className="note">Daily budget = (money − bills − spending on earlier days) ÷ days left. Unspent money carries over to tomorrow automatically.</p>
-        <p><button className="btn alt sm" onClick={newPeriod}>Start new period</button></p>
+        <p style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn alt sm" onClick={newPeriod}>Start new period</button>
+          <button type="button" onClick={() => setShowTotal((s) => !s)} style={{ padding: '4px 14px', fontSize: 12, fontWeight: 700, color: '#0b1f3a', background: 'linear-gradient(135deg,#f5d76e,#d4a017)', border: 'none', borderRadius: 999, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>{showTotal ? 'Hide' : 'Total'}</button>
+          {showTotal && (<span style={{ fontSize: 13, fontWeight: 700, color: '#0b1f3a', background: '#fff8dc', border: '1px solid #d4a017', padding: '3px 12px', borderRadius: 999 }}>{gbp(keyedTotal)}</span>)}
+        </p>
       </section>
       <Items title="Bills and fixed costs" hint="Rent, phone, transport pass: anything you must pay this period." items={d.bills} onChange={(bills) => upd({ bills })} />
       <Items title="Spending" hint="Add what you spend each day." items={d.spends} dated onChange={(spends) => upd({ spends })} />

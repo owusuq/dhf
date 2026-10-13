@@ -15,7 +15,6 @@ drop policy if exists "sent admin all" on public.sent_payments;
 create policy "sent own read" on public.sent_payments for select using (user_id = auth.uid());
 create policy "sent admin all" on public.sent_payments for all using (public.is_admin()) with check (public.is_admin());
 
--- Student taps "Got it": marks only their own payments as seen.
 create or replace function public.mark_payments_seen() returns void
 language sql security definer set search_path = public as
 $$ update public.sent_payments set seen = true where user_id = auth.uid() and seen = false $$;
