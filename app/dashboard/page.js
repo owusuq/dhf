@@ -185,6 +185,7 @@ export default function Dashboard() {
 
   const paid = pays.reduce((s, x) => s + Number(x.amount), 0);
   const total = Number(p.fees_total || 0);
+  const owing = p.fees_owing != null ? Number(p.fees_owing) : Math.max(0, total - paid);
   const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
   const next = plan ? nextOccurrence(plan.due_date, plan.frequency) : null;
   const bday = nextBirthday(p.birthday);
@@ -240,16 +241,16 @@ export default function Dashboard() {
             <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: pct + '%' }} /></div>
             <div className="grid">
               <div className="stat"><small>Paid</small><b>{money(paid)}</b></div>
-              <div className="stat"><small>Balance</small><b>{money(Math.max(0, total - paid))}</b></div>
+              <div className="stat"><small>Balance</small><b>{money(owing)}</b></div>
               <div className="stat"><small>Next payment</small><b>{next ? `${fmt(next)} (${daysUntil(next)}d)` : 'Not set'}</b></div>
               <div className="stat"><small>Birthday</small><b>{bd === null ? 'Add yours in Profile' : bd === 0 ? 'Today' : bd + ' days'}</b></div>
             </div>
           </section>
           <section className="card" style={{ border: '2px solid #c9a227', background: '#fff8e1' }}>
             <h2>Your fees</h2>
-            {total > 0 ? (<>
-              <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{total - paid > 0 ? `You owe ${money(total - paid)}` : total - paid < 0 ? `Overpaid by ${money(paid - total)}` : 'Fully paid. Thank you!'}</b></p>
-              <p><small>Full fees {money(total)} · Paid so far {money(paid)}</small></p>
+            {(total > 0 || p.fees_owing != null) ? (<>
+              <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{owing > 0 ? `You owe ${money(owing)}` : 'Nothing owing. Thank you!'}</b></p>
+              {total > 0 && <p><small>Full fees {money(total)}</small></p>}
             </>) : <p>Your full fees have not been entered yet. The Foundation will update this soon.</p>}
           </section>
           <section className="card">

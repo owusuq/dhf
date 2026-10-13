@@ -55,7 +55,7 @@ export default function StudentFees() {
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, email, level, phone, fees_total').eq('is_admin', false).order('full_name'),
+      supabase.from('profiles').select('id, full_name, email, level, phone, fees_total, fees_owing').eq('is_admin', false).order('full_name'),
       supabase.from('payments').select('*').order('paid_on', { ascending: false }),
     ]);
     if (a.error) { say(a.error.message, true); setStudents([]); return; }
@@ -79,8 +79,7 @@ export default function StudentFees() {
     setAdd({ paid_on: today(), amount: '', note: '' });
     setDet({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '' });
     setFull(Number(s.fees_total) ? String(s.fees_total) : '');
-    const pd = pays.filter((x) => x.user_id === s.id).reduce((t, x) => t + Number(x.amount), 0);
-    setOwingIn(Number(s.fees_total) ? String(Math.max(0, Number(s.fees_total) - pd)) : '');
+    setOwingIn(s.fees_owing != null ? String(s.fees_owing) : '');
     setOpenId(s.id);
   }
 
@@ -94,14 +93,17 @@ export default function StudentFees() {
     say('Saved.'); load();
   }
   // Enter the full fees once. The balance owing = full fees minus everything paid so far.
-  async function saveFull(s, override) {
-    const fees = override !== undefined ? override : Number(full);
-    if ((override === undefined && full === '') || isNaN(fees) || fees < 0) return say('Enter the full fees amount.', true);
+  // Full fees and amount owing are saved exactly as typed. They do not change each other.
+  async function saveFull(s, zero) {
+    const fees = full === '' ? 0 : Number(full);
+    const owe = zero ? 0 : owingIn === '' ? null : Number(owingIn);
+    if (isNaN(fees) || fees < 0 || (owe !== null && (isNaN(owe) || owe < 0))) return say('Enter amounts of 0 or more.', true);
     setBusy(true);
-    const { data, error } = await supabase.from('profiles').update({ fees_total: fees }).eq('id', s.id).select('id');
+    const { data, error } = await supabase.from('profiles').update({ fees_total: fees, fees_owing: owe }).eq('id', s.id).select('id');
     setBusy(false);
-    if (error || !data || !data.length) return say(error ? error.message : 'Not saved. Run supabase/admin_edit.sql in Supabase first.', true);
-    say(fees - paidBy(s.id) > 0 ? `Saved. ${s.full_name || 'The student'} owes ${money(fees - paidBy(s.id))}.` : 'Saved. Fully paid.'); load();
+    if (error || !data || !data.length) return say(error ? error.message : 'Not saved. Run supabase/admin_edit.sql and supabase/fees_owing.sql in Supabase first.', true);
+    if (zero) setOwingIn('0');
+    say(owe === null ? 'Saved.' : owe > 0 ? `Saved. ${s.full_name || 'The student'} owes ${money(owe)}.` : 'Saved. Nothing owing.'); load();
   }
   async function addPayment(s) {
     const amount = Number(add.amount);
@@ -133,7 +135,8 @@ export default function StudentFees() {
 
   const paidBy = (id) => pays.filter((p) => p.user_id === id).reduce((t, p) => t + Number(p.amount), 0);
   const term = q.trim().toLowerCase();
-  const owes = (s) => Number(s.fees_total || 0) - paidBy(s.id) > 0;
+  const owingOf = (s) => (s.fees_owing != null ? Number(s.fees_owing) : Math.max(0, Number(s.fees_total || 0) - paidBy(s.id)));
+  const owes = (s) => owingOf(s) > 0;
   const list = students
     .filter((s) => !term || (s.full_name || '').toLowerCase().includes(term) || (s.email || '').toLowerCase().includes(term))
     .filter((s) => !onlyOwing || owes(s));
@@ -141,13 +144,13 @@ export default function StudentFees() {
 
   const allTotal = students.reduce((t, s) => t + Number(s.fees_total || 0), 0);
   const allPaid = students.reduce((t, s) => t + paidBy(s.id), 0);
-  const allBal = students.reduce((t, s) => t + Math.max(0, Number(s.fees_total || 0) - paidBy(s.id)), 0);
+  const allBal = students.reduce((t, s) => t + owingOf(s), 0);
 
   const sel = openId ? students.find((s) => s.id === openId) : null;
   const selPays = sel ? pays.filter((p) => p.user_id === sel.id) : [];
   const selPaid = sel ? paidBy(sel.id) : 0;
   const selTotal = sel ? Number(sel.fees_total || 0) : 0;
-  const selBal = selTotal - selPaid;
+  const selBal = sel ? owingOf(sel) : 0;
   const selPct = selTotal > 0 ? Math.min(100, Math.round((selPaid / selTotal) * 100)) : 0;
   const typed = Number(add.amount) > 0 ? Number(add.amount) : 0;
   const after = selBal - typed;
@@ -185,7 +188,7 @@ export default function StudentFees() {
               </span>
               <span className="bal">
                 <small>Owing</small>
-                <b>{showOwing ? money(Math.max(0, total - paid)) : '••••'}</b>
+                <b>{showOwing ? money(owingOf(s)) : '••••'}</b>
               </span>
               <span aria-hidden="true">›</span>
             </button>
@@ -206,8 +209,8 @@ export default function StudentFees() {
 
             <div className="sf-sum">
               <div><small>Total fees</small><b>{money(selTotal)}</b></div>
-              <div><small>Paid so far</small><b>{money(selPaid)}</b></div>
-              <div><small>{selBal < 0 ? 'Overpaid' : 'Owing'}</small><b>{money(Math.abs(selBal))}</b></div>
+              <div><small>Payments logged</small><b>{money(selPaid)}</b></div>
+              <div><small>Owing</small><b>{money(selBal)}</b></div>
             </div>
             <div className="bar" role="progressbar" aria-valuenow={selPct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: selPct + '%' }} /></div>
 
@@ -215,16 +218,14 @@ export default function StudentFees() {
 
             <div className="sf-sec sf-top">
               <h3>Full fees &amp; amount owing</h3>
-              <p style={{ margin: '0 0 8px' }}><small>Type either one. The other updates by itself. Paid so far: <b>{money(selPaid)}</b></small></p>
+              <p style={{ margin: '0 0 8px' }}><small>Enter each one on its own. They are saved exactly as you type them. Payments logged so far: <b>{money(selPaid)}</b></small></p>
               <div className="sf-2">
-                <div><label>Full fees (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 2690" value={full}
-                  onChange={(e) => { const v = e.target.value; setFull(v); setOwingIn(v === '' ? '' : String(Math.max(0, Number(v) - selPaid))); }} /></div>
-                <div><label>Amount owing (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 876" value={owingIn}
-                  onChange={(e) => { const v = e.target.value; setOwingIn(v); setFull(v === '' ? '' : String(selPaid + Number(v))); }} /></div>
+                <div><label>Full fees (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 2690" value={full} onChange={(e) => setFull(e.target.value)} /></div>
+                <div><label>Amount owing (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 876" value={owingIn} onChange={(e) => setOwingIn(e.target.value)} /></div>
               </div>
               <p style={{ margin: '10px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button type="button" className="btn" disabled={busy} onClick={() => saveFull(sel)}>Save</button>
-                <button type="button" className="btn alt" disabled={busy} onClick={() => { setFull(String(selPaid)); setOwingIn('0'); saveFull(sel, selPaid); }}>Mark fully paid</button>
+                <button type="button" className="btn alt" disabled={busy} onClick={() => saveFull(sel, true)}>Mark fully paid</button>
               </p>
             </div>
 
@@ -235,7 +236,6 @@ export default function StudentFees() {
                 <div><label>Date paid</label><input type="date" value={add.paid_on} onChange={(e) => setAdd({ ...add, paid_on: e.target.value })} /></div>
                 <div><label>Note</label><input placeholder="e.g. MoMo, cash, part payment" value={add.note} onChange={(e) => setAdd({ ...add, note: e.target.value })} /></div>
               </div>
-              {typed > 0 && <p className="sf-after">{after >= 0 ? `Balance after this payment: ${money(after)}` : `Overpaid by ${money(-after)} after this payment`}</p>}
               <p style={{ margin: '8px 0 0' }}><button type="button" className="btn" disabled={busy} onClick={() => addPayment(sel)}>Add payment</button></p>
             </div>
 

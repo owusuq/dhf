@@ -382,7 +382,7 @@ export default function Admin() {
 
   function csv() {
     const head = 'Name,Email,Phone,Level,Birthday,Option,Fees,Paid,Balance,Feeding plan,Next payment';
-    const body = rows.map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, s.fees_total - s.paid, s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
+    const body = rows.map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, (s.fees_owing != null ? s.fees_owing : s.fees_total - s.paid), s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([[head, ...body].join('\n')], { type: 'text/csv' }));
     a.download = 'students.csv';
@@ -448,7 +448,7 @@ export default function Admin() {
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id}><td>{name(s)}</td><td>{s.email}</td><td>{s.level}</td><td>{s.phone}</td><td>{s.birthday}</td>
-                  <td>{s.fees_total}</td><td>{s.paid}</td><td>{Math.max(0, s.fees_total - s.paid)}</td>
+                  <td>{s.fees_total}</td><td>{s.paid}</td><td>{s.fees_owing != null ? s.fees_owing : Math.max(0, s.fees_total - s.paid)}</td>
                   <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td>
                   <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
                   <td><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
