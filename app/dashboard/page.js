@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -202,7 +203,7 @@ export default function Dashboard() {
   return (
     <>
       <div className="top">
-        <Link href="/dashboard" className="logo-link" aria-label="Home" onClick={() => { setTab('home'); setNavOpen(false); }}><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} />
+        <Link href="/dashboard" className="logo-link" aria-label="Home" onClick={() => { setTab('home'); setNavOpen(false); }}><Image src="/logo.jpeg" alt="" width={92} height={92} priority onError={(e) => (e.target.style.display = 'none')} />
         <b>Daakyehene Foundation</b></Link>
         {p.is_admin && <Link href="/admin">Admin</Link>}
         <button onClick={async () => { await supabase.auth.signOut(); router.replace('/'); }}>Sign out</button>

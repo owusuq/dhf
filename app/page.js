@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -69,7 +70,7 @@ export default function Login() {
   return (
     <>
       <div className="top">
-        <Link href="/" className="logo-link" aria-label="Daakyehene Foundation home"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></Link>
+        <Link href="/" className="logo-link" aria-label="Daakyehene Foundation home"><Image src="/logo.jpeg" alt="" width={92} height={92} priority onError={(e) => (e.target.style.display = 'none')} /><b>Daakyehene Foundation</b></Link>
         <a href="#contact">Contact us</a>
       </div>
 

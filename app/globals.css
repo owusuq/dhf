@@ -132,7 +132,7 @@ h1,h2,h3{letter-spacing:-.02em;font-weight:700}
 header,nav{background:linear-gradient(135deg,var(--navy),#13315c)!important;border-bottom:3px solid var(--gold)!important;color:#fff}
 header a,nav a{color:#fff}
 header a:hover,nav a:hover{color:var(--gold)}
-button,a,input,select,textarea,tr{transition:background-color .2s,color .2s,border-color .2s,box-shadow .2s,filter .2s}
+button,a,input,select,textarea{transition:background-color .2s,color .2s,border-color .2s,box-shadow .2s,filter .2s}
 button:not(:disabled):hover{filter:brightness(1.08)}
 button:not(:disabled):active{transform:scale(.98)}
 input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(201,162,39,.35);border-color:var(--gold)}
@@ -311,3 +311,14 @@ input,select,textarea{background:rgba(255,255,255,.62);border:1px solid rgba(255
 /* password Show/Hide: instant, no jump, no blur lag */
 .pw-eye,.pw-eye:hover,.pw-eye:active{transition:none!important;filter:none!important;transform:translateY(-50%)!important;-webkit-backdrop-filter:none;backdrop-filter:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .pw-eye:active{background:#d5dfeb}
+
+/* perf: lighter glass. Blur kept only on header, footer, nav and popups */
+.card,.lg-contact,.bud-stat,.tabs,.msg,.btn.alt,.lg-hero,.hero,.dn-card,.rq-card{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.card,.lg-contact,.bud-stat{background:rgba(255,255,255,.82)}
+.dn-card,.rq-card{background:rgba(255,255,255,.97)}
+.tabs{background:rgba(255,255,255,.6)}
+.msg{background:rgba(255,255,255,.75)}
+.btn.alt{background:rgba(255,255,255,.8)}
+.hero{background-color:rgba(18,56,94,.92)}
+/* perf: no card lift on hover */
+.card:hover{transform:none}

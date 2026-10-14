@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -401,7 +402,7 @@ export default function Admin() {
 
   return (
     <>
-      <div className="top"><Link href="/dashboard" className="logo-link" aria-label="Home"><img src="/logo.jpeg" alt="" onError={(e) => (e.target.style.display = 'none')} /><b>Admin · Students</b></Link><Link href="/dashboard">My dashboard</Link></div>
+      <div className="top"><Link href="/dashboard" className="logo-link" aria-label="Home"><Image src="/logo.jpeg" alt="" width={92} height={92} priority onError={(e) => (e.target.style.display = 'none')} /><b>Admin · Students</b></Link><Link href="/dashboard">My dashboard</Link></div>
       <div className="wrap">
         {editing && rows.find((x) => x.id === editing) && (
           <EditPanel key={editing} s={rows.find((x) => x.id === editing)} onClose={() => setEditing(null)} onSaved={load} />
