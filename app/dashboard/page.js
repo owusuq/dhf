@@ -26,16 +26,14 @@ const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short
 const NETWORKS = ['MTN MoMo', 'Telecel Cash', 'AT Money'];
 const TITLE = 'Daakyehene Foundation feeding payment';
 
-// Read-only: shows the student the terms the Foundation has set (Term 1, Term 2 ...).
-// Students cannot change these. Only the admin can, from the Student fees tab.
-function FeeTerms({ terms, paid }) {
+// Read-only: shows the student the terms the Foundation has set (Term 1, Term 2 ...) with the fee and the
+// amount owing typed for each one. Students cannot change these. Only the admin can, from the Student fees tab.
+function FeeTerms({ terms }) {
   if (!terms || !terms.length) return null;
-  let left = Number(paid) || 0;
   const rows = terms.map((t) => {
-    const amt = Number(t.amount || 0);
-    const pd = Math.min(left, amt);
-    left -= pd;
-    return { ...t, amt, pd, ow: amt - pd };
+    const fee = Number(t.amount || 0);
+    const ow = t.owing == null ? fee : Number(t.owing || 0);
+    return { ...t, fee, ow };
   });
   const years = [];
   rows.forEach((r) => { const y = (r.year_label || '').trim(); if (!years.includes(y)) years.push(y); });
@@ -45,16 +43,16 @@ function FeeTerms({ terms, paid }) {
       <h3>Your terms</h3>
       {years.map((y) => {
         const g = rows.filter((r) => (r.year_label || '').trim() === y);
-        const yt = g.reduce((t, r) => t + r.amt, 0);
-        const yp = g.reduce((t, r) => t + r.pd, 0);
+        const yt = g.reduce((t, r) => t + r.fee, 0);
+        const yo = g.reduce((t, r) => t + r.ow, 0);
         return (
           <div key={y || 'none'}>
-            {(years.length > 1 || y) && <div className="ft-yr"><b>{y ? 'Year ' + y : 'Other'}</b><span>Fees {money(yt)} · Owing {money(yt - yp)}</span></div>}
+            {(years.length > 1 || y) && <div className="ft-yr"><b>{y ? 'Year ' + y : 'Other'}</b><span>Fees {money(yt)} · Owing {money(yo)}</span></div>}
             {g.map((r) => {
-              const info = feeInfo(r.amt, r.ow, r.amt > 0 ? Math.min(100, Math.round((r.pd / r.amt) * 100)) : 0);
+              const info = feeInfo(r.fee, r.ow, r.fee > 0 ? Math.max(0, Math.min(100, Math.round(((r.fee - r.ow) / r.fee) * 100))) : 0);
               return (
                 <div className="ft-row" key={r.id}>
-                  <span><b>{r.term_name}</b><small>Fee {money(r.amt)} · Paid {money(r.pd)}</small></span>
+                  <span><b>{r.term_name}</b><small>Fee {money(r.fee)}</small></span>
                   <span className={'fee-tag sm ' + info.cls}>{r.ow > 0 ? 'Owing ' + money(r.ow) : 'Paid'}</span>
                 </div>
               );
@@ -62,7 +60,6 @@ function FeeTerms({ terms, paid }) {
           </div>
         );
       })}
-      <p style={{ margin: '8px 0 0' }}><small>Payments are counted against the earliest term first.</small></p>
     </div>
   );
 }
@@ -238,7 +235,7 @@ export default function Dashboard() {
   const paid = pays.reduce((s, x) => s + Number(x.amount), 0);
   const total = Number(p.fees_total || 0);
   const owing = p.fees_owing != null ? Number(p.fees_owing) : Math.max(0, total - paid);
-  const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  const pct = total > 0 ? Math.max(0, Math.min(100, Math.round(((terms.length ? total - owing : paid) / total) * 100))) : 0; // with terms, progress = fees minus owing
   const fee = (total > 0 || p.fees_owing != null) ? feeInfo(total, owing, pct) : null;
   const next = plan ? nextOccurrence(plan.due_date, plan.frequency) : null;
   const bday = nextBirthday(p.birthday);
@@ -306,7 +303,7 @@ export default function Dashboard() {
               <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{owing > 0 ? `You owe ${money(owing)}` : 'Nothing owing. Thank you!'}</b></p>
               {total > 0 && <p><small>Full fees {money(total)}</small></p>}
             </>) : <p>Your full fees have not been entered yet. The Foundation will update this soon.</p>}
-            <FeeTerms terms={terms} paid={paid} />
+            <FeeTerms terms={terms} />
           </section>
           <section className="card">
             <h2>Apply to the Daakyehene Foundation</h2>
