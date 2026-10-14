@@ -193,6 +193,7 @@ export default function StudentFees() {
     if (error || !data || !data.length) { setBusy(false); return say(error ? error.message : 'Term not saved.', true); }
     const list = [...mine, ...data];
     const bad = await syncFees(s.id, list);
+    setFull(String(sumTerms(list))); setOwingIn('');
     setBusy(false);
     setTAdd({ name: nextTermName(list), year: tAdd.year.trim(), amount: '' });
     if (bad) say(bad, true); else say(name + ' added. Full fees are now ' + money(sumTerms(list)) + '.');
@@ -208,6 +209,7 @@ export default function StudentFees() {
     if (error || !data || !data.length) { setBusy(false); return say(error ? error.message : 'Not saved.', true); }
     const list = terms.filter((t) => t.user_id === s.id).map((t) => (t.id === tEdit.id ? { ...t, amount } : t));
     const bad = await syncFees(s.id, list);
+    setFull(String(sumTerms(list))); setOwingIn('');
     setBusy(false); setTEdit(null);
     if (bad) say(bad, true); else say('Term updated. Full fees are now ' + money(sumTerms(list)) + '.');
     load();
@@ -218,6 +220,7 @@ export default function StudentFees() {
     if (error || !data || !data.length) return say(error ? error.message : 'Not deleted.', true);
     const list = terms.filter((t) => t.user_id === s.id && t.id !== id);
     const bad = await syncFees(s.id, list);
+    setFull(list.length ? String(sumTerms(list)) : ''); setOwingIn('');
     if (bad) say(bad, true); else say(list.length ? 'Term deleted. Full fees are now ' + money(sumTerms(list)) + '.' : 'Term deleted. This student has no terms now, so enter the fees by hand or add a term.');
     load();
   }
@@ -372,10 +375,10 @@ export default function StudentFees() {
               </>)}
             </div>
 
-            {sTerms.length === 0 && (
             <div className="sf-sec sf-top">
               <h3>Full fees &amp; amount owing</h3>
               <p style={{ margin: '0 0 8px' }}><small>Enter each one on its own. They are saved exactly as you type them. Payments logged so far: <b>{money(selPaid)}</b></small></p>
+              {sTerms.length > 0 && <p style={{ margin: '0 0 8px' }}><small>The terms above add up to <b>{money(sumTerms(sTerms))}</b>. You can type different figures here and press Save; leave <b>Amount owing</b> empty to have it worked out from the payments. Adding, editing or deleting a term works the fees out from the terms again.</small></p>}
               <div className="sf-2">
                 <div><label>Full fees (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 2690" value={full} onChange={(e) => setFull(e.target.value)} /></div>
                 <div><label>Amount owing (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 876" value={owingIn} onChange={(e) => setOwingIn(e.target.value)} /></div>
@@ -385,7 +388,6 @@ export default function StudentFees() {
                 <button type="button" className="btn alt" disabled={busy} onClick={() => saveFull(sel, true)}>Mark fully paid</button>
               </p>
             </div>
-            )}
 
             <div className="sf-sec">
               <h3>Top up / add a payment</h3>
