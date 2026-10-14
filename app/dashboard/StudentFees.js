@@ -36,9 +36,35 @@ const CSS = `
 .sf-pay>span{flex:1;min-width:160px;overflow-wrap:anywhere}
 .sf-top{background:#fff9e8;border:1px solid #ecd9a0;border-radius:14px;padding:12px}
 .sf-after{margin:8px 0 0;font-weight:600}
+.sf-yr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;background:#f5f8fb;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:10px;font-weight:600}
+.sf-yr.big{background:#fff;border-color:#ecd9a0}
+.sf-tm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:.6rem .2rem;border-top:1px solid var(--line)}
+.sf-tm>span:first-child{flex:1;min-width:160px;overflow-wrap:anywhere}
 .sf-ok{background:#e6f4ea;color:#1c6b34}
 @media (max-width:640px){.sf-back{padding:0;align-items:flex-end}.sf-modal{max-width:none;max-height:94dvh;border-radius:18px 18px 0 0}}
 `;
+
+// Terms: each student can have several terms (Term 1, Term 2 ...), each with its own fee and an optional year.
+// Full fees = all terms added together. Owing = full fees minus every payment logged.
+// Payments are applied to the earliest term first, so each term shows what is paid and what is left.
+const sumTerms = (list) => list.reduce((t, x) => t + Number(x.amount || 0), 0);
+function allocateTerms(list, paid) {
+  let left = Number(paid) || 0;
+  return list.map((t) => {
+    const amt = Number(t.amount || 0);
+    const p = Math.min(left, amt);
+    left -= p;
+    return { ...t, paid: p, owing: amt - p };
+  });
+}
+// Suggests the next term name from the last one: "Term 1" -> "Term 2".
+function nextTermName(list) {
+  const last = list[list.length - 1];
+  if (!last) return 'Term 1';
+  const name = (last.term_name || '').trim();
+  const m = /(\d+)\s*$/.exec(name);
+  return m ? name.replace(/(\d+)\s*$/, String(Number(m[1]) + 1)) : 'Term ' + (list.length + 1);
+}
 
 // Admin: every student with fees, paid and balance. Tap a student to open a wide panel to edit
 // their details, total fees and payments (add / top up / edit / delete).
@@ -57,17 +83,23 @@ export default function StudentFees() {
   const [edit, setEdit] = useState(null); // { id, paid_on, amount, note }
   const [add, setAdd] = useState({ paid_on: today(), amount: '', note: '' });
   const [busy, setBusy] = useState(false);
+  const [terms, setTerms] = useState([]); // every student's fee terms
+  const [termsOk, setTermsOk] = useState(true); // false until supabase/fee_terms.sql has been run
+  const [tAdd, setTAdd] = useState({ name: 'Term 1', year: '', amount: '' });
+  const [tEdit, setTEdit] = useState(null); // { id, name, year, amount }
 
   const say = (text, err = false) => { if (!err && notify(text.replace(/\.$/, ''))) setNote(null); else setNote({ text, err }); };
 
   const load = useCallback(async () => {
-    const [a, b] = await Promise.all([
+    const [a, b, c] = await Promise.all([
       supabase.from('profiles').select('id, full_name, email, level, phone, fees_total, fees_owing').eq('is_admin', false).order('full_name'),
       supabase.from('payments').select('*').order('paid_on', { ascending: false }),
+      supabase.from('fee_terms').select('*').order('created_at'),
     ]);
     if (a.error) { say(a.error.message, true); setStudents([]); return; }
     setStudents(a.data || []);
     setPays(b.data || []);
+    if (c.error) { setTermsOk(false); setTerms([]); } else { setTermsOk(true); setTerms(c.data || []); }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -82,7 +114,9 @@ export default function StudentFees() {
   }, [openId]);
 
   function openStudent(s) {
-    setNote(null); setEdit(null);
+    setNote(null); setEdit(null); setTEdit(null);
+    const mine = terms.filter((t) => t.user_id === s.id);
+    setTAdd({ name: nextTermName(mine), year: mine.length ? (mine[mine.length - 1].year_label || '') : '', amount: '' });
     setAdd({ paid_on: today(), amount: '', note: '' });
     setDet({ full_name: s.full_name || '', level: s.level || '', phone: s.phone || '' });
     setFull(Number(s.fees_total) ? String(s.fees_total) : '');
@@ -138,6 +172,56 @@ export default function StudentFees() {
     say('Payment deleted.'); load();
   }
 
+  // Keep the student's full fees in step with their terms. Owing is left empty so it is always
+  // worked out as full fees minus payments (the student page and exports already do that).
+  async function syncFees(sid, list) {
+    const { data, error } = await supabase.from('profiles').update({ fees_total: sumTerms(list), fees_owing: null }).eq('id', sid).select('id');
+    if (error) return error.message;
+    if (!data || !data.length) return 'The term was saved but the total was not updated. Run supabase/admin_edit.sql in Supabase first.';
+    return null;
+  }
+  async function addTerm(s) {
+    const name = tAdd.name.trim();
+    const amount = Number(tAdd.amount);
+    if (!name) return say('Enter the term name, e.g. Term 2.', true);
+    if (tAdd.amount === '' || isNaN(amount) || amount < 0) return say('Enter the fee for this term (0 or more).', true);
+    const mine = terms.filter((t) => t.user_id === s.id);
+    if (!mine.length && (Number(s.fees_total) > 0 || s.fees_owing != null) &&
+      !window.confirm('This student has fees entered by hand (full fees ' + money(s.fees_total) + (s.fees_owing != null ? ', owing ' + money(s.fees_owing) : '') + '). Adding terms will work the fees out from the terms and the payments logged instead, so add any earlier payments under Top up / add a payment too. Continue?')) return;
+    setBusy(true);
+    const { data, error } = await supabase.from('fee_terms').insert({ user_id: s.id, term_name: name, year_label: tAdd.year.trim(), amount }).select('*');
+    if (error || !data || !data.length) { setBusy(false); return say(error ? error.message : 'Term not saved.', true); }
+    const list = [...mine, ...data];
+    const bad = await syncFees(s.id, list);
+    setBusy(false);
+    setTAdd({ name: nextTermName(list), year: tAdd.year.trim(), amount: '' });
+    if (bad) say(bad, true); else say(name + ' added. Full fees are now ' + money(sumTerms(list)) + '.');
+    load();
+  }
+  async function saveTerm(s) {
+    const name = tEdit.name.trim();
+    const amount = Number(tEdit.amount);
+    if (!name) return say('Enter the term name.', true);
+    if (tEdit.amount === '' || isNaN(amount) || amount < 0) return say('Enter the fee for this term (0 or more).', true);
+    setBusy(true);
+    const { data, error } = await supabase.from('fee_terms').update({ term_name: name, year_label: tEdit.year.trim(), amount }).eq('id', tEdit.id).select('id');
+    if (error || !data || !data.length) { setBusy(false); return say(error ? error.message : 'Not saved.', true); }
+    const list = terms.filter((t) => t.user_id === s.id).map((t) => (t.id === tEdit.id ? { ...t, amount } : t));
+    const bad = await syncFees(s.id, list);
+    setBusy(false); setTEdit(null);
+    if (bad) say(bad, true); else say('Term updated. Full fees are now ' + money(sumTerms(list)) + '.');
+    load();
+  }
+  async function removeTerm(s, id) {
+    if (!window.confirm('Delete this term? The full fees and amount owing will be worked out again.')) return;
+    const { data, error } = await supabase.from('fee_terms').delete().eq('id', id).select('id');
+    if (error || !data || !data.length) return say(error ? error.message : 'Not deleted.', true);
+    const list = terms.filter((t) => t.user_id === s.id && t.id !== id);
+    const bad = await syncFees(s.id, list);
+    if (bad) say(bad, true); else say(list.length ? 'Term deleted. Full fees are now ' + money(sumTerms(list)) + '.' : 'Term deleted. This student has no terms now, so enter the fees by hand or add a term.');
+    load();
+  }
+
   if (!students) return note ? <p style={{ padding: 20 }}>{note.text}</p> : <Skeleton lines={5} />;
 
   const paidBy = (id) => pays.filter((p) => p.user_id === id).reduce((t, p) => t + Number(p.amount), 0);
@@ -159,6 +243,10 @@ export default function StudentFees() {
   const selTotal = sel ? Number(sel.fees_total || 0) : 0;
   const selBal = sel ? owingOf(sel) : 0;
   const selPct = selTotal > 0 ? Math.min(100, Math.round((selPaid / selTotal) * 100)) : 0;
+  const sTerms = sel ? terms.filter((t) => t.user_id === sel.id) : [];
+  const termRows = allocateTerms(sTerms, selPaid);
+  const years = [];
+  termRows.forEach((t) => { const y = (t.year_label || '').trim(); if (!years.includes(y)) years.push(y); });
   const typed = Number(add.amount) > 0 ? Number(add.amount) : 0;
   const after = selBal - typed;
 
@@ -227,6 +315,65 @@ export default function StudentFees() {
             {note && <div className={'msg' + (note.err ? ' err' : ' sf-ok')}>{note.text}</div>}
 
             <div className="sf-sec sf-top">
+              <h3>Terms &amp; yearly fees</h3>
+              {!termsOk ? (
+                <div className="msg err">Terms are not set up yet. Run <b>supabase/fee_terms.sql</b> in Supabase (SQL Editor), then refresh this page.</div>
+              ) : (<>
+                <p style={{ margin: '0 0 8px' }}><small>Add the fee for each term. <b>Full fees</b> = all terms added together. <b>Owing</b> = full fees minus payments logged. Payments are counted against the earliest term first.</small></p>
+                {termRows.length === 0 && <p style={{ margin: '0 0 8px' }}><small>No terms yet. Add the first term below.</small></p>}
+                {years.map((y) => {
+                  const rows = termRows.filter((t) => (t.year_label || '').trim() === y);
+                  const yt = sumTerms(rows);
+                  const yp = rows.reduce((t, x) => t + x.paid, 0);
+                  return (
+                    <div key={y || 'none'}>
+                      {(years.length > 1 || y) && <div className="sf-yr"><span>{y ? 'Year ' + y : 'No year'} · total {money(yt)}</span><span>Paid {money(yp)} · Owing {money(yt - yp)}</span></div>}
+                      {rows.map((r) => {
+                        const pct = Number(r.amount) > 0 ? Math.min(100, Math.round((r.paid / Number(r.amount)) * 100)) : 0;
+                        const info = feeInfo(Number(r.amount), r.owing, pct);
+                        return tEdit && tEdit.id === r.id ? (
+                          <div className="sf-tm" key={r.id} style={{ display: 'block' }}>
+                            <div className="sf-2">
+                              <input placeholder="Term name" value={tEdit.name} onChange={(e) => setTEdit({ ...tEdit, name: e.target.value })} />
+                              <input placeholder="Year (optional)" value={tEdit.year} onChange={(e) => setTEdit({ ...tEdit, year: e.target.value })} />
+                              <input type="number" min="0" step="0.01" placeholder="Fee" value={tEdit.amount} onChange={(e) => setTEdit({ ...tEdit, amount: e.target.value })} />
+                            </div>
+                            <p style={{ margin: '8px 0 0', display: 'flex', gap: 8 }}>
+                              <button type="button" className="btn sm" disabled={busy} onClick={() => saveTerm(sel)}>Save</button>
+                              <button type="button" className="btn sm alt" onClick={() => setTEdit(null)}>Cancel</button>
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="sf-tm" key={r.id}>
+                            <span><b>{r.term_name}</b> · {money(r.amount)}<br /><small>Paid {money(r.paid)} · Owing {money(r.owing)}</small></span>
+                            <span className={'fee-tag sm ' + info.cls}>{info.label}</span>
+                            <button type="button" className="btn sm alt" onClick={() => setTEdit({ id: r.id, name: r.term_name || '', year: r.year_label || '', amount: String(r.amount) })}>Edit</button>
+                            <button type="button" className="btn sm del" onClick={() => removeTerm(sel, r.id)}>Delete</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {termRows.length > 0 && (
+                  <>
+                    <div className="sf-yr big"><span>Full payment (all terms)</span><b>{money(selTotal)}</b></div>
+                    <div className="sf-yr big"><span>Still owing</span><b>{money(selBal)}</b></div>
+                    {selPaid > selTotal && <p style={{ margin: '6px 0 0' }}><small>Paid {money(selPaid - selTotal)} more than the full fees.</small></p>}
+                  </>
+                )}
+                <h3 style={{ marginTop: 16 }}>Add a term</h3>
+                <div className="sf-2">
+                  <div><label>Term name</label><input placeholder="e.g. Term 2" value={tAdd.name} onChange={(e) => setTAdd({ ...tAdd, name: e.target.value })} /></div>
+                  <div><label>Year (optional)</label><input placeholder="e.g. 2026/27" value={tAdd.year} onChange={(e) => setTAdd({ ...tAdd, year: e.target.value })} /></div>
+                  <div><label>Fee for this term (GH₵)</label><input type="number" min="0" step="0.01" placeholder="e.g. 900" value={tAdd.amount} onChange={(e) => setTAdd({ ...tAdd, amount: e.target.value })} /></div>
+                </div>
+                <p style={{ margin: '10px 0 0' }}><button type="button" className="btn" disabled={busy} onClick={() => addTerm(sel)}>Add term</button></p>
+              </>)}
+            </div>
+
+            {sTerms.length === 0 && (
+            <div className="sf-sec sf-top">
               <h3>Full fees &amp; amount owing</h3>
               <p style={{ margin: '0 0 8px' }}><small>Enter each one on its own. They are saved exactly as you type them. Payments logged so far: <b>{money(selPaid)}</b></small></p>
               <div className="sf-2">
@@ -238,6 +385,7 @@ export default function StudentFees() {
                 <button type="button" className="btn alt" disabled={busy} onClick={() => saveFull(sel, true)}>Mark fully paid</button>
               </p>
             </div>
+            )}
 
             <div className="sf-sec">
               <h3>Top up / add a payment</h3>
