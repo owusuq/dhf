@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
 import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -107,7 +109,7 @@ function StudentPayments({ s, addChange }) {
         <button type="button" className="btn sm" onClick={save}>{editId ? 'Save payment' : 'Add payment'}</button>{' '}
         {editId && <button type="button" className="btn alt sm" onClick={() => { setEditId(null); setF(blank); }}>Cancel</button>}
       </p>
-      {list.length === 0 && <p><small>No payments logged.</small></p>}
+      {list.length === 0 && <Empty icon="💳" title="No payments logged" />}
       {list.map((x) => (
         <div className="row" key={x.id}>
           <span>{dlongD(x.paid_on)} · <b>{money(x.amount)}</b>{x.note ? ' · ' + x.note : ''}</span>
@@ -390,7 +392,7 @@ export default function Admin() {
     a.download = 'students.csv';
     a.click();
   }
-  if (!rows) return <div className="wrap">Loading…</div>;
+  if (!rows) return <div className="wrap"><Skeleton lines={5} /></div>;
 
   const soon = rows.filter((s) => s.status === 'soon');
   const isHidden = (s) => s.lastDue && dismissed[s.id] === s.lastDue.toISOString().slice(0, 10);
@@ -413,7 +415,7 @@ export default function Admin() {
           <p><Link className="btn alt sm" href="/admin/applications">Applications</Link></p>
           <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
           {note && <div className="msg">{note}</div>}
-          {shown.length === 0 && <p><small>No one found.</small></p>}
+          {shown.length === 0 && <Empty icon="🔍" title="No one found" hint="Try a different search." />}
           {shown.slice(0, lim).map((s) => (
             <div className="row" key={s.id}>
               <span><b>{name(s)}</b><br /><small>{s.email}{s.is_admin ? ' · Admin' : ''}</small></span>
@@ -427,7 +429,7 @@ export default function Admin() {
         <section className="card">
           <h2>Reminders to send</h2>
           <p>{soon.length} due today or tomorrow · {overdue.length} overdue. Tap a button to open the message already written, then press send.</p>
-          {soon.length + overdue.length === 0 && <p>Nobody needs a reminder right now.</p>}
+          {soon.length + overdue.length === 0 && <Empty icon="🎉" title="All clear" hint="Nobody needs a reminder right now." />}
           {soon.map((s) => (
             <div className="row" key={s.id}>
               <span><b>{name(s)}</b> · due {s.days === 0 ? 'today' : 'tomorrow'} · {s.plan}</span>

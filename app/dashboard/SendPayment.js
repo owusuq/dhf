@@ -1,4 +1,5 @@
 'use client';
+import Empty from '../Empty';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -103,7 +104,7 @@ export default function SendPayment({ adminId }) {
       <section className="card">
         <h2>Recent payments sent</h2>
         {rows.length > 0 && <p><button className="btn del sm" onClick={clearAll}>Clear all</button></p>}
-        {rows.length === 0 && <p>None yet.</p>}
+        {rows.length === 0 && <Empty icon="💸" title="No payments sent yet" />}
         {rows.map((r) => (
           <div className="row" key={r.id}>
             <span><b>{name(r.user_id)}</b> · {money(r.amount)}<br /><small>{r.reason} · {day(r.created_at)}{r.seen ? ' · seen' : ' · not seen yet'}</small></span>

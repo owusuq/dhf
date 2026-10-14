@@ -1,4 +1,5 @@
 'use client';
+import Empty from '../Empty';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -61,7 +62,7 @@ function Items({ title, hint, items, onChange, dated, totalBtn }) {
         </p>
       </form>
       {totalBtn && (<p style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}><button type="button" onClick={() => setShowSum((v) => !v)} style={{ padding: '4px 14px', fontSize: 12, fontWeight: 700, color: '#0b1f3a', background: 'linear-gradient(135deg,#f5d76e,#d4a017)', border: 'none', borderRadius: 999, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }}>{showSum ? 'Hide' : 'Total'}</button>{showSum && (<span style={{ fontSize: 13, fontWeight: 700, color: '#0b1f3a', background: '#fff8dc', border: '1px solid #d4a017', padding: '3px 12px', borderRadius: 999 }}>{gbp(sum(items))}</span>)}</p>)}
-      {list.length === 0 && <p>Nothing yet.</p>}
+      {list.length === 0 && <Empty icon="🧾" title="Nothing here yet" />}
       {list.map((x) => (
         <div className="row" key={x.id}>
           <span>{dated ? nice(x.date) + ' · ' : ''}{x.name || 'Item'} · <b>{gbp(x.amount)}</b></span>

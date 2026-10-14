@@ -10,7 +10,8 @@
   var l = d.createElement('link'); l.rel = 'manifest'; l.href = '/manifest.json'; d.head.appendChild(l);
 
   window.toast = function (msg) {
-    var t = d.createElement('div'); t.className = 'p-toast'; t.textContent = msg; d.body.appendChild(t);
+    d.querySelectorAll('.p-toast').forEach(function (x) { x.remove(); });
+    var t = d.createElement('div'); t.className = 'p-toast'; t.textContent = msg; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); d.body.appendChild(t);
     setTimeout(function () { t.classList.add('out'); }, 2200);
     setTimeout(function () { t.remove(); }, 2700);
   };
@@ -51,9 +52,10 @@
 
   function init() {
     var t = d.createElement('button');
-    t.className = 'p-dark-toggle'; t.textContent = '\u{1F319}'; t.setAttribute('aria-label', 'Toggle dark mode');
+    t.className = 'p-dark-toggle'; t.textContent = d.documentElement.classList.contains('dark') ? '\u2600\uFE0F' : '\u{1F319}'; t.setAttribute('aria-label', 'Toggle dark mode');
     t.onclick = function () {
       var on = d.documentElement.classList.toggle('dark');
+      t.textContent = on ? '\u2600\uFE0F' : '\u{1F319}';
       try { localStorage.setItem('dark', on ? '1' : '0'); } catch (e) {}
     };
     d.body.appendChild(t);

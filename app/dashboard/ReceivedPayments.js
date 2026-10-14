@@ -25,7 +25,7 @@ export default function ReceivedPayments({ userId }) {
   return (
     <>
       {fresh.length > 0 && (
-        <section className="card" style={{ border: '2px solid #c9a227', background: '#fff8e1' }}>
+        <section className="card fees-card">
           <h2>🔔 New payment{fresh.length > 1 ? 's' : ''} from the Foundation</h2>
           {fresh.map((r) => <p key={r.id}><b>{money(r.amount)}</b> · {r.reason}<br /><small>{day(r.created_at)}</small></p>)}
           <p><button className="btn sm" onClick={dismiss}>Got it</button></p>

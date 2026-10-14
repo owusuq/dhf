@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../../Skeleton';
+import Empty from '../../Empty';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -160,8 +162,8 @@ export default function Applications() {
           <p><button type="button" className="btn alt sm" onClick={clearDeclined}>Clear all declined</button></p>
         )}
         {err && <div className="msg err">{err}</div>}
-        {rows === null && !err && <p>Loading…</p>}
-        {rows && list.length === 0 && <p><small>No applications here.</small></p>}
+        {rows === null && !err && <Skeleton lines={3} />}
+        {rows && list.length === 0 && <Empty icon="📝" title="No applications here" />}
       </section>
       {list.map((a) => (
         <AppCard key={a.id} a={a} onDelete={(id) => setRows((l) => l.filter((x) => x.id !== id))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />

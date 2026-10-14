@@ -1,4 +1,9 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
+import CountUp from '../CountUp';
+import { feeInfo } from '../../lib/fee';
+import { notify } from '../../lib/toast';
 import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,15 +11,15 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { supabase, UPLOAD_FORM, PAYMENT_FORM } from '../../lib/supabase';
 import { nextOccurrence, nextBirthday, daysUntil, googleLink, downloadIcs, ruleFor } from '../../lib/cal';
-const Budget = dynamic(() => import('./Budget'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const Results = dynamic(() => import('./Results'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const DataSupport = dynamic(() => import('./DataSupport'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const DataSupportAdmin = dynamic(() => import('./DataSupportAdmin'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const RequestsAdmin = dynamic(() => import('./RequestsAdmin'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const RequestTab = dynamic(() => import('./RequestTab'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
-const SendPayment = dynamic(() => import('./SendPayment'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
+const Budget = dynamic(() => import('./Budget'), { ssr: false, loading: () => <Skeleton /> });
+const Results = dynamic(() => import('./Results'), { ssr: false, loading: () => <Skeleton /> });
+const DataSupport = dynamic(() => import('./DataSupport'), { ssr: false, loading: () => <Skeleton /> });
+const DataSupportAdmin = dynamic(() => import('./DataSupportAdmin'), { ssr: false, loading: () => <Skeleton /> });
+const RequestsAdmin = dynamic(() => import('./RequestsAdmin'), { ssr: false, loading: () => <Skeleton /> });
+const RequestTab = dynamic(() => import('./RequestTab'), { ssr: false, loading: () => <Skeleton /> });
+const SendPayment = dynamic(() => import('./SendPayment'), { ssr: false, loading: () => <Skeleton /> });
 import ReceivedPayments from './ReceivedPayments';
-const StudentFees = dynamic(() => import('./StudentFees'), { ssr: false, loading: () => <p><small>Loading…</small></p> });
+const StudentFees = dynamic(() => import('./StudentFees'), { ssr: false, loading: () => <Skeleton /> });
 
 const money = (n) => 'GH₵ ' + Number(n || 0).toLocaleString();
 const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
@@ -40,12 +45,12 @@ function FeedingPlan({ userId, plan, reload, phone }) {
     if (error) return setErr(error.message);
     const pr = await supabase.from('profiles').update({ phone: ph.trim() }).eq('id', userId);
     if (pr.error) return setErr(pr.error.message);
-    setErr(''); setEdit(false); reload();
+    notify('Feeding plan saved'); setErr(''); setEdit(false); reload();
   }
   async function remove() {
     if (!confirm('Remove your feeding plan?')) return;
     await supabase.from('due_dates').delete().eq('id', plan.id);
-    setStart(''); setAmount(''); setEdit(true); reload();
+    notify('Feeding plan removed'); setStart(''); setAmount(''); setEdit(true); reload();
   }
 
   if (plan && !edit) {
@@ -111,11 +116,12 @@ function Payments({ userId, rows, reload }) {
       ? await supabase.from('payments').update(body).eq('id', editing)
       : await supabase.from('payments').insert({ ...body, user_id: userId });
     if (error) return setErr(error.message);
-    setErr(''); setForm(blank); setEditing(null); reload();
+    notify(editing ? 'Payment updated' : 'Payment added'); setErr(''); setForm(blank); setEditing(null); reload();
   }
   async function del(id) {
     if (!confirm('Delete this payment?')) return;
     await supabase.from('payments').delete().eq('id', id);
+    notify('Payment deleted');
     reload();
   }
   return (
@@ -134,7 +140,7 @@ function Payments({ userId, rows, reload }) {
           {editing && <button type="button" className="btn alt" onClick={() => { setEditing(null); setForm(blank); }}>Cancel</button>}
         </p>
       </form>
-      {rows.length === 0 && <p>No payments yet. Add your first one above.</p>}
+      {rows.length === 0 && <Empty icon="💳" title="No payments yet" hint="Add your first one above." />}
       {rows.map((r) => (
         <div className="row" key={r.id}>
           <span>{fmt(new Date(r.paid_on + 'T00:00:00Z'))} · {money(r.amount)}{r.note ? ' · ' + r.note : ''}</span>
@@ -183,12 +189,13 @@ export default function Dashboard() {
     try { if (localStorage.getItem('dhf-results')) { localStorage.removeItem('dhf-results'); setTab('results'); } } catch (e) { /* ignore */ }
   }, []);
 
-  if (!p) return <div className="wrap">Loading…</div>;
+  if (!p) return <div className="wrap"><Skeleton hero /></div>;
 
   const paid = pays.reduce((s, x) => s + Number(x.amount), 0);
   const total = Number(p.fees_total || 0);
   const owing = p.fees_owing != null ? Number(p.fees_owing) : Math.max(0, total - paid);
   const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+  const fee = (total > 0 || p.fees_owing != null) ? feeInfo(total, owing, pct) : null;
   const next = plan ? nextOccurrence(plan.due_date, plan.frequency) : null;
   const bday = nextBirthday(p.birthday);
   const bd = bday ? daysUntil(bday) : null;
@@ -197,7 +204,7 @@ export default function Dashboard() {
     e.preventDefault();
     const { full_name, level, birthday, phone, payment_option } = p;
     const { error } = await supabase.from('profiles').update({ full_name, level, birthday: birthday || null, phone, payment_option }).eq('id', user);
-    setMsg(error ? error.message : 'Saved.');
+    setMsg(error ? error.message : (notify('Details saved') ? '' : 'Saved.'));
   }
   const sp = (k) => (e) => setP({ ...p, [k]: e.target.value });
 
@@ -240,15 +247,16 @@ export default function Dashboard() {
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
             <h2>{(() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; })()}{p.full_name ? ', ' + p.full_name.split(' ')[0] : ''}</h2>
-            <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: pct + '%' }} /></div>
+            {fee && <div className="fee-line"><span className={'fee-tag ' + fee.cls}>{fee.label}</span><small>{pct}% paid</small></div>}
+            <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: pct + '%', background: fee ? fee.bg : undefined }} /></div>
             <div className="grid">
-              <div className="stat"><small>Paid</small><b>{money(paid)}</b></div>
-              <div className="stat"><small>Balance</small><b>{money(owing)}</b></div>
+              <div className="stat"><small>Paid</small><b><CountUp prefix="GH₵ " value={paid} /></b></div>
+              <div className="stat"><small>Balance</small><b><CountUp prefix="GH₵ " value={owing} /></b></div>
               <div className="stat"><small>Next payment</small><b>{next ? `${fmt(next)} (${daysUntil(next)}d)` : 'Not set'}</b></div>
               <div className="stat"><small>Birthday</small><b>{bd === null ? 'Add yours in Profile' : bd === 0 ? 'Today' : bd + ' days'}</b></div>
             </div>
           </section>
-          <section className="card" style={{ border: '2px solid #c9a227', background: '#fff8e1' }}>
+          <section className="card fees-card">
             <h2>Your fees</h2>
             {(total > 0 || p.fees_owing != null) ? (<>
               <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{owing > 0 ? `You owe ${money(owing)}` : 'Nothing owing. Thank you!'}</b></p>
@@ -308,6 +316,16 @@ export default function Dashboard() {
             </p>
           </form>
         )}
+      </div>
+      <div className="btabs" role="navigation" aria-label="Main tabs">
+        {[['home', 'Home', '🏠'], ['results', 'Results', '🎓'], ['data', 'Data', '📶'], ['plan', 'Plan', '🗓️'], ['me', 'Profile', '👤']].map(([k, label, ic]) => (
+          <button key={k} type="button" className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => { setTab(k); setNavOpen(false); window.scrollTo({ top: 0 }); }}>
+            <span aria-hidden="true">{ic}</span><small>{label}</small>
+          </button>
+        ))}
+        <button type="button" className={!['home', 'results', 'data', 'plan', 'me'].includes(tab) || navOpen ? 'on' : ''} aria-expanded={navOpen} onClick={() => { setNavOpen(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+          <span aria-hidden="true">⋯</span><small>More</small>{pending > 0 && <span className="rq-badge">{pending > 99 ? '99+' : pending}</span>}
+        </button>
       </div>
     </>
   );

@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../../Skeleton';
+import Empty from '../../Empty';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -58,8 +60,8 @@ export default function DeleteStudents() {
         <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
         {msg && <div className="msg">{msg}</div>}
         {err && <div className="msg err">{err}</div>}
-        {rows === null && <p>Loading…</p>}
-        {rows && list.length === 0 && <p><small>No students found.</small></p>}
+        {rows === null && <Skeleton lines={3} />}
+        {rows && list.length === 0 && <Empty icon="🔍" title="No students found" />}
         {list.map((s) => (
           <div className="row" key={s.id}>
             <span><b>{s.full_name || '(no name)'}</b><br /><small>{s.email}{s.is_admin ? ' · Admin' : ''}</small></span>

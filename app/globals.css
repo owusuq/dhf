@@ -168,8 +168,6 @@ nav button,nav [role=tab],header button{color:#fff!important}
 
 /* dark */
 .p-dark-toggle{position:fixed;right:16px;bottom:16px;z-index:9999;width:44px;height:44px;border-radius:50%;border:2px solid #c9a227;background:#0a2342;color:#fff;font-size:20px;cursor:pointer}
-html.dark{filter:invert(1) hue-rotate(180deg);background:#fff}
-html.dark img,html.dark video,html.dark .p-dark-toggle,html.dark .p-toast,html.dark .dn-btn,html.dark .dn-ov{filter:invert(1) hue-rotate(180deg)}
 
 /* stats */
 .dn-stats{margin:0 0 14px;padding:12px;background:#f4f7fb;border-radius:12px;font-size:15px;line-height:1.5}
@@ -183,7 +181,6 @@ html.dark img,html.dark video,html.dark .p-dark-toggle,html.dark .p-toast,html.d
 .rq-badge{display:inline-block;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#d92d20;color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center;margin-left:6px;vertical-align:middle}
 .gnav-bar button{position:relative}
 .rq-badge.rq-corner{position:absolute;top:-8px;right:-8px;margin:0;box-shadow:0 0 0 2px #fff}
-html.dark .rq-fab,html.dark .rq-ov,html.dark .rq-badge{filter:invert(1) hue-rotate(180deg)}
 
 .top .logo-link{display:flex;align-items:center;gap:.75rem;flex:1;min-width:0;border:0;padding:0;border-radius:0;background:none;font-weight:inherit}
 .top .logo-link:hover{background:none}
@@ -322,3 +319,105 @@ input,select,textarea{background:rgba(255,255,255,.62);border:1px solid rgba(255
 .hero{background-color:rgba(18,56,94,.92)}
 /* perf: no card lift on hover */
 .card:hover{transform:none}
+
+/* style-pack v1 */
+/* 1. clean text */
+body,button,input,select,textarea{font-family:var(--font-jakarta,system-ui),system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* 2. skeletons */
+.sk-line{height:14px;border-radius:8px;margin:.7rem 0}
+.sk-line.s{width:60%}
+.sk-title{height:22px;width:45%;border-radius:8px;margin:.2rem 0 1rem}
+.sk-hero{height:150px;border-radius:16px;margin:.2rem 0 1rem}
+
+/* 3. fee progress colours + label */
+.fee-line{display:flex;align-items:center;gap:.6rem;margin:.5rem 0 -.2rem}
+.fee-tag{display:inline-block;padding:.15rem .65rem;border-radius:99px;font-size:.78rem;font-weight:700;letter-spacing:.02em;background:#ffffff2e;color:#fff;border:1px solid #ffffff55}
+.fee-tag.paid{background:#1f9d57;border-color:#1f9d57;color:#fff}
+.fee-tag.part{background:#c9a227;border-color:#c9a227;color:#0a2342}
+.fee-tag.owing{background:#b3342b;border-color:#b3342b;color:#fff}
+.fee-tag.sm{font-size:.7rem;padding:.05rem .5rem;margin-left:.4rem;vertical-align:middle}
+.hero .fee-line small{color:#ffffffcc}
+.sf-modal .bar{background:#e6ebf1}
+.bar i,.sf-mini i{transition:background .4s}
+
+/* 5. toast popup */
+.p-toast{z-index:30000;display:flex;align-items:center;gap:.5rem;max-width:min(92vw,420px);bottom:calc(24px + env(safe-area-inset-bottom));font-weight:600;animation:toastIn .3s var(--ease) both}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* 7. empty states */
+.empty{text-align:center;padding:1.4rem 1rem}
+.empty-ic{font-size:2.2rem;line-height:1;margin-bottom:.4rem}
+.empty-t{margin:0;font-weight:700}
+.empty-h{margin:.2rem 0 0;font-size:.9rem;color:#5b6b7c}
+
+/* fees card (was inline style) */
+.card.fees-card{background-color:#fff8e1;border:2px solid #c9a227}
+
+/* 8. gold underline on the active tab */
+.tabs button,.gnav-r button{position:relative}
+.tabs button.on::after,.gnav-r button.on::after{content:"";position:absolute;left:24%;right:24%;bottom:3px;height:3px;border-radius:3px;background:var(--gold)}
+
+/* 4. bottom tab bar (phones only) */
+.btabs{display:none}
+@media (max-width:700px){
+  .btabs{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:9000;padding:.35rem max(.4rem,env(safe-area-inset-right)) calc(.35rem + env(safe-area-inset-bottom)) max(.4rem,env(safe-area-inset-left));background:rgba(10,35,66,.94);-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%);border-top:2px solid var(--gold);box-shadow:0 -6px 24px rgba(10,35,66,.25)}
+  .btabs button{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;padding:.25rem 0;border:0;border-radius:12px;background:none;color:#fff;opacity:.68;font:inherit;cursor:pointer;transition:opacity .2s,background .2s}
+  .btabs button span{font-size:1.25rem;line-height:1}
+  .btabs button small{font-size:.68rem;font-weight:600}
+  .btabs button.on{opacity:1;background:rgba(255,255,255,.1)}
+  .btabs button.on::after{content:"";position:absolute;left:30%;right:30%;bottom:2px;height:3px;border-radius:3px;background:var(--gold)}
+  .btabs .rq-badge{position:absolute;top:-1px;left:calc(50% + 9px);margin:0;min-width:18px;height:18px;line-height:18px;font-size:11px;box-shadow:0 0 0 2px #0a2342}
+  body:has(.btabs) .foot{padding-bottom:calc(7rem + env(safe-area-inset-bottom))}
+  body:has(.btabs) .dn-btn,body:has(.btabs) .p-dark-toggle{bottom:calc(72px + env(safe-area-inset-bottom))}
+  body:has(.btabs) .rq-fab{bottom:calc(124px + env(safe-area-inset-bottom))}
+  body:has(.btabs) .p-toast{bottom:calc(88px + env(safe-area-inset-bottom))}
+}
+
+/* 9. bigger tap targets */
+@media (max-width:700px),(pointer:coarse){
+  .btn,.btn.sm,.top a,.top button,.tabs button,.choice button,.gnav-r button,.gnav-bar button,.sf-x,.dn-btn,.rq-fab,.p-dark-toggle,.dn-copy,.dn-x,.ins-btns .btn,.ck-btns .btn{min-height:44px}
+  .btn.sm,.top a,.top button{display:inline-flex;align-items:center;justify-content:center}
+  .sf-x,.p-dark-toggle{width:44px;height:44px}
+  .gnav-bar button{min-width:48px}
+}
+
+/* 10. real dark mode (replaces the old colour-flip trick) */
+html.dark{color-scheme:dark;--ink:#e6edf5;--bg:#0a1626;--card:#13233a;--line:#2a3f5c;--red:#ff8f85;background:#0a1626}
+html.dark body{background:radial-gradient(48rem 34rem at 8% -8%,rgba(201,162,39,.16),transparent 62%),radial-gradient(44rem 36rem at 100% 4%,rgba(48,120,214,.2),transparent 58%),#0a1626;background-attachment:fixed;color:var(--ink)}
+html.dark .card:not(.hero),html.dark .lg-contact,html.dark .bud-stat,html.dark .dn-card,html.dark .rq-card,html.dark .ins,html.dark .ck{background-color:rgba(19,35,58,.94);border-color:rgba(255,255,255,.1);color:var(--ink);box-shadow:0 10px 34px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06)}
+html.dark .card.fees-card{background-color:rgba(201,162,39,.16);border-color:#c9a227}
+html.dark .ck p,html.dark .dn-x,html.dark .dn-note a,html.dark .ins-steps,html.dark .dn-gfm{color:var(--ink)}
+html.dark .bud-stat small,html.dark .lg-sub,html.dark .lg-contact p,html.dark .empty-h,html.dark .ins-row small,html.dark .sf-sum small,html.dark .sf-row .bal small,html.dark small[style*="107, 119, 133"]{color:#9fb2c7!important}
+html.dark .bud-stat.main{background-color:#1b4177}
+html.dark .dn-stats{background:rgba(255,255,255,.07)}
+html.dark input,html.dark select,html.dark textarea{background-color:rgba(8,18,32,.7);border-color:rgba(255,255,255,.16);color:var(--ink);box-shadow:none}
+html.dark input::placeholder,html.dark textarea::placeholder{color:#7d90a8}
+html.dark .btn:not(.alt):not(.del):not(.admin-go):not(.lg-mail){background-image:linear-gradient(180deg,#2d64a6,#1b4177);border-color:rgba(255,255,255,.18)}
+html.dark .btn.alt{background:rgba(255,255,255,.08);color:#d6e6fa;border-color:rgba(255,255,255,.2)}
+html.dark .btn.alt:hover{background:rgba(255,255,255,.16)}
+html.dark .btn.del{background:transparent;color:#ff8f85;border-color:#ff8f85}
+html.dark .btn.del:hover{background:rgba(255,143,133,.14)}
+html.dark .party{color:#0a2342}
+html.dark .tabs{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+html.dark .tabs button{color:#cfe0f5}
+html.dark .tabs button:hover{background:rgba(255,255,255,.08)}
+html.dark .tabs button.on{background:rgba(255,255,255,.16);color:#fff}
+html.dark .choice button{background:rgba(255,255,255,.06);border-color:var(--line);color:var(--ink)}
+html.dark .choice button.on{background:#2d64a6;border-color:#2d64a6;color:#fff}
+html.dark .row:hover,html.dark tbody tr:hover,html.dark tr:hover td{background:rgba(255,255,255,.05)}
+html.dark .msg{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12)}
+html.dark .msg.err{background:rgba(179,52,43,.28);color:#ffb7b0}
+html.dark .note{background:rgba(201,151,31,.16);color:var(--ink)}
+html.dark .pw-eye{background:rgba(255,255,255,.12);color:#cfe0f5}
+html.dark .pw-eye:active{background:rgba(255,255,255,.2)}
+html.dark .lg-link,html.dark .plan-big{color:#8fc0f2}
+html.dark .gnav-bar button{background:#13233a;border-color:rgba(255,255,255,.18);color:#fff}
+html.dark .sf-sum div{background:rgba(255,255,255,.06)}
+html.dark .sf-row:hover{background:rgba(255,255,255,.06)}
+html.dark .sf-mini,html.dark .sf-modal .bar{background:rgba(255,255,255,.12)}
+html.dark .sf-modal,html.dark .sf-head,html.dark .sf-x{background:#13233a;color:var(--ink)}
+html.dark .sf-top{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.4)}
+html.dark .sf-ok{background:rgba(31,157,87,.2);color:#8be0b0}
+html.dark .skeleton,html.dark [class*=animate-pulse]{background:linear-gradient(90deg,#1b2d45 25%,#26405f 37%,#1b2d45 63%);background-size:400% 100%;background-position:100% 0}

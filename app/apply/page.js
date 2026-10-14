@@ -1,4 +1,5 @@
 'use client';
+import Skeleton from '../Skeleton';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -81,7 +82,7 @@ export default function Apply() {
         <h2>Apply to the {PROGRAM}</h2>
         <p><Link className="btn alt sm" href="/dashboard">Back to dashboard</Link></p>
 
-        {app === undefined && <p>Loading…</p>}
+        {app === undefined && <Skeleton lines={3} />}
 
         {app && (
           <>

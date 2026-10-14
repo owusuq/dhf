@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -96,7 +98,7 @@ export default function Results({ isAdmin }) {
     load();
   }
 
-  if (rows === null) return <section className="card">Loading…</section>;
+  if (rows === null) return <Skeleton />;
   const shown = isAdmin && filter ? rows.filter((r) => r.user_id === filter) : rows;
 
   return (
@@ -129,7 +131,7 @@ export default function Results({ isAdmin }) {
             {students.map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
           </select>
         )}
-        {shown.length === 0 && <p>{isAdmin ? 'No results uploaded yet.' : 'No results yet. They will appear here once uploaded.'}</p>}
+        {shown.length === 0 && <Empty icon="🎓" title={isAdmin ? 'No results uploaded yet' : 'No results yet'} hint={isAdmin ? 'Upload the first one above.' : 'They will appear here once uploaded.'} />}
         {shown.map((r) => (
           <div className="row" key={r.id}>
             {editing === r.id ? (

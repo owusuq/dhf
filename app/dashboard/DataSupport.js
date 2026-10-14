@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../Skeleton';
+import { notify } from '../../lib/toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -31,12 +33,12 @@ export default function DataSupport() {
     const { error } = await supabase.from('data_requests').insert({ bundle_gb: gb, network, phone });
     setBusy(false);
     if (error) return setMsg('Could not submit. Data support may be closed.');
-    setMsg('Request sent ✅');
+    if (notify('Request sent')) setMsg(''); else setMsg('Request sent ✅');
     setGb(null); setNetwork(''); setPhone('');
     load();
   }
 
-  if (!settings) return <p style={{ padding: 20 }}>Loading…</p>;
+  if (!settings) return <Skeleton />;
 
   return (
     <div className="ds">

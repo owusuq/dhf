@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -137,8 +139,8 @@ export default function RequestsAdmin({ onCount }) {
           <p><button type="button" className="btn del sm" onClick={() => clearMany('', 'all')}>Delete everything</button></p>
         )}
         {err && <div className="msg err">{err}</div>}
-        {rows === null && !err && <p>Loading…</p>}
-        {rows && list.length === 0 && <p><small>No requests here.</small></p>}
+        {rows === null && !err && <Skeleton lines={3} />}
+        {rows && list.length === 0 && <Empty icon="✉️" title="No requests here" />}
       </section>
       {list.slice(0, lim).map((r) => (
         <Card key={r.id} r={r} onDelete={(id) => setRows((l) => l.filter((x) => x.id !== id))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status } : x)))} />

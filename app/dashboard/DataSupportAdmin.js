@@ -1,4 +1,6 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
@@ -41,7 +43,7 @@ export default function DataSupportAdmin() {
     load();
   }
 
-  if (!s) return <p style={{ padding: 20 }}>Loading…</p>;
+  if (!s) return <Skeleton />;
 
   return (
     <div style={{ maxWidth: 700, margin: '0 auto' }}>
@@ -67,7 +69,7 @@ export default function DataSupportAdmin() {
       {reqs.some((x) => x.status !== 'pending') && (
         <p><button onClick={clearSent}>Clear all sent</button></p>
       )}
-      {reqs.length === 0 && <p>No requests yet.</p>}
+      {reqs.length === 0 && <Empty icon="📶" title="No requests yet" />}
       {reqs.slice(0, lim).map((r) => (
         <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #eee' }}>
           <span><b>{names[r.user_id] || 'Student'}</b> — {r.bundle_gb}GB {r.network} → {r.phone}</span>

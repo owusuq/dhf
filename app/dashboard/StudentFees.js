@@ -1,4 +1,9 @@
 'use client';
+import Skeleton from '../Skeleton';
+import Empty from '../Empty';
+import CountUp from '../CountUp';
+import { feeInfo } from '../../lib/fee';
+import { notify } from '../../lib/toast';
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../lib/supabase';
@@ -53,7 +58,7 @@ export default function StudentFees() {
   const [add, setAdd] = useState({ paid_on: today(), amount: '', note: '' });
   const [busy, setBusy] = useState(false);
 
-  const say = (text, err = false) => setNote({ text, err });
+  const say = (text, err = false) => { if (!err && notify(text.replace(/\.$/, ''))) setNote(null); else setNote({ text, err }); };
 
   const load = useCallback(async () => {
     const [a, b] = await Promise.all([
@@ -133,7 +138,7 @@ export default function StudentFees() {
     say('Payment deleted.'); load();
   }
 
-  if (!students) return <p style={{ padding: 20 }}>{note ? note.text : 'Loading…'}</p>;
+  if (!students) return note ? <p style={{ padding: 20 }}>{note.text}</p> : <Skeleton lines={5} />;
 
   const paidBy = (id) => pays.filter((p) => p.user_id === id).reduce((t, p) => t + Number(p.amount), 0);
   const term = q.trim().toLowerCase();
@@ -162,9 +167,9 @@ export default function StudentFees() {
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <h2>Student fees ({students.length})</h2>
       <div className="sf-sum">
-        <div><small>Total fees</small><b>{money(allTotal)}</b></div>
-        <div><small>Received</small><b>{money(allPaid)}</b></div>
-        <div><small>Total owing</small><b>{showOwing ? money(allBal) : '••••'}</b></div>
+        <div><small>Total fees</small><b><CountUp prefix="GH₵ " value={allTotal} /></b></div>
+        <div><small>Received</small><b><CountUp prefix="GH₵ " value={allPaid} /></b></div>
+        <div><small>Total owing</small><b>{showOwing ? <CountUp prefix="GH₵ " value={allBal} /> : '••••'}</b></div>
       </div>
       <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
       <p style={{ margin: '8px 0 0' }}>
@@ -175,18 +180,19 @@ export default function StudentFees() {
         {notSet > 0 && <small style={{ display: 'block', color: '#6b7785' }}>{notSet} student{notSet > 1 ? 's have' : ' has'} no full fees entered yet.</small>}
       </p>
       {!sel && note && <div className={'msg' + (note.err ? ' err' : '')}>{note.text}</div>}
-      {list.length === 0 && <p><small>No students found.</small></p>}
+      {list.length === 0 && <Empty icon="🔍" title="No students found" hint="Try a different name or clear the filter." />}
       <div style={{ marginTop: 8 }}>
         {list.slice(0, lim).map((s) => {
           const paid = paidBy(s.id);
           const total = Number(s.fees_total || 0);
           const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+          const fee = (total > 0 || s.fees_owing != null) ? feeInfo(total, owingOf(s), pct) : null;
           return (
             <button type="button" className="sf-row" key={s.id} onClick={() => openStudent(s)}>
               <span className="nm">
-                <b>{s.full_name || s.email}</b>
+                <b>{s.full_name || s.email}</b>{fee && <span className={'fee-tag sm ' + fee.cls}>{fee.label}</span>}
                 <small style={{ display: 'block', color: '#6b7785' }}>Fees {money(total)} · Paid {money(paid)}</small>
-                <div className="sf-mini"><i style={{ width: pct + '%' }} /></div>
+                <div className="sf-mini"><i style={{ width: pct + '%', background: fee ? fee.bg : undefined }} /></div>
               </span>
               <span className="bal">
                 <small>Owing</small>
@@ -215,7 +221,8 @@ export default function StudentFees() {
               <div><small>Payments logged</small><b>{money(selPaid)}</b></div>
               <div><small>Owing</small><b>{money(selBal)}</b></div>
             </div>
-            <div className="bar" role="progressbar" aria-valuenow={selPct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: selPct + '%' }} /></div>
+            {(selTotal > 0 || (sel && sel.fees_owing != null)) && <p className="fee-line" style={{ color: 'inherit' }}><span className={'fee-tag ' + feeInfo(selTotal, selBal, selPct).cls}>{feeInfo(selTotal, selBal, selPct).label}</span><small>{selPct}% paid</small></p>}
+            <div className="bar" role="progressbar" aria-valuenow={selPct} aria-valuemin="0" aria-valuemax="100"><i style={{ width: selPct + '%', background: (selTotal > 0 || (sel && sel.fees_owing != null)) ? feeInfo(selTotal, selBal, selPct).bg : undefined }} /></div>
 
             {note && <div className={'msg' + (note.err ? ' err' : ' sf-ok')}>{note.text}</div>}
 
@@ -244,7 +251,7 @@ export default function StudentFees() {
 
             <div className="sf-sec">
               <h3>Payments made ({selPays.length})</h3>
-              {selPays.length === 0 && <p><small>No payments logged yet.</small></p>}
+              {selPays.length === 0 && <Empty icon="💳" title="No payments logged yet" hint="Use Top up / add a payment above." />}
               {selPays.map((p) => edit && edit.id === p.id ? (
                 <div className="sf-pay" key={p.id} style={{ display: 'block' }}>
                   <div className="sf-2">
