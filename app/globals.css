@@ -421,3 +421,8 @@ html.dark .sf-modal,html.dark .sf-head,html.dark .sf-x{background:#13233a;color:
 html.dark .sf-top{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.4)}
 html.dark .sf-ok{background:rgba(31,157,87,.2);color:#8be0b0}
 html.dark .skeleton,html.dark [class*=animate-pulse]{background:linear-gradient(90deg,#1b2d45 25%,#26405f 37%,#1b2d45 63%);background-size:400% 100%;background-position:100% 0}
+
+/* WhatsApp contact button (landing page contact section) */
+.lg-actions{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center}
+.btn.lg-wa{background:#1fa855;border-color:#1fa855;color:#fff;box-shadow:none}
+.btn.lg-wa:hover{background:#198f48}

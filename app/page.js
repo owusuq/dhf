@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { WHATSAPP_DISPLAY, WHATSAPP_INTL } from '../lib/config';
 import RequestButton from './RequestButton';
 import InstallPrompt from './InstallPrompt';
 
@@ -120,8 +121,11 @@ export default function Login() {
 
       <section className="lg-contact" id="contact">
         <h2>Contact us</h2>
-        <p>Questions about your fees, your account or support? Send us an email and we will get back to you.</p>
-        <a className="btn lg-mail" href={'mailto:' + EMAIL + '?subject=Student%20Portal%20enquiry'}>{EMAIL}</a>
+        <p>Questions about your fees, your account or support? Message us on WhatsApp or send us an email and we will get back to you.</p>
+        <div className="lg-actions">
+          <a className="btn lg-wa" href={'https://wa.me/' + WHATSAPP_INTL + '?text=' + encodeURIComponent('Hello Daakyehene Foundation, I have a question about the student portal.')} target="_blank" rel="noopener noreferrer">WhatsApp us: {WHATSAPP_DISPLAY}</a>
+          <a className="btn lg-mail" href={'mailto:' + EMAIL + '?subject=Student%20Portal%20enquiry'}>{EMAIL}</a>
+        </div>
       </section>
       <RequestButton />
       <InstallPrompt />
