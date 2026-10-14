@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 export default function DataSupportAdmin() {
   const [s, setS] = useState(null);
   const [reqs, setReqs] = useState([]);
+  const [lim, setLim] = useState(30);
   const [names, setNames] = useState({});
 
   async function load() {
@@ -12,7 +13,7 @@ export default function DataSupportAdmin() {
     setS(st);
     const { data: r } = await supabase.from('data_requests').select('*').order('created_at', { ascending: false });
     setReqs(r || []);
-    const { data: p } = await supabase.from('profiles').select('*');
+    const { data: p } = await supabase.from('profiles').select('id, full_name, email');
     setNames(Object.fromEntries((p || []).map((x) => [x.id, x.full_name || x.name || x.fullname || x.email || 'Student'])));
   }
   useEffect(() => { load(); }, []);
@@ -67,7 +68,7 @@ export default function DataSupportAdmin() {
         <p><button onClick={clearSent}>Clear all sent</button></p>
       )}
       {reqs.length === 0 && <p>No requests yet.</p>}
-      {reqs.map((r) => (
+      {reqs.slice(0, lim).map((r) => (
         <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '10px 0', borderBottom: '1px solid #eee' }}>
           <span><b>{names[r.user_id] || 'Student'}</b> — {r.bundle_gb}GB {r.network} → {r.phone}</span>
           <span style={{ display: 'flex', gap: 6 }}>
@@ -79,6 +80,7 @@ export default function DataSupportAdmin() {
           </span>
         </div>
       ))}
+      {reqs.length > lim && <p><button type="button" className="btn alt sm" onClick={() => setLim(lim + 30)}>Show more ({reqs.length - lim} left)</button></p>}
     </div>
   );
 }

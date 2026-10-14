@@ -41,6 +41,7 @@ export default function StudentFees() {
   const [students, setStudents] = useState(null);
   const [pays, setPays] = useState([]);
   const [q, setQ] = useState('');
+  const [lim, setLim] = useState(30);
   const [openId, setOpenId] = useState(null);
   const [note, setNote] = useState(null); // { text, err }
   const [det, setDet] = useState({ full_name: '', level: '', phone: '' });
@@ -176,7 +177,7 @@ export default function StudentFees() {
       {!sel && note && <div className={'msg' + (note.err ? ' err' : '')}>{note.text}</div>}
       {list.length === 0 && <p><small>No students found.</small></p>}
       <div style={{ marginTop: 8 }}>
-        {list.map((s) => {
+        {list.slice(0, lim).map((s) => {
           const paid = paidBy(s.id);
           const total = Number(s.fees_total || 0);
           const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
@@ -196,6 +197,7 @@ export default function StudentFees() {
           );
         })}
       </div>
+      {list.length > lim && <p><button type="button" className="btn alt sm" onClick={() => setLim(lim + 30)}>Show more ({list.length - lim} left)</button></p>}
 
       {sel && typeof document !== 'undefined' && createPortal(
         <div className="sf-back" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpenId(null); }}>

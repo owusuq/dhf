@@ -307,6 +307,7 @@ export default function Admin() {
   const [editing, setEditing] = useState(null);
   const [dismissed, setDismissed] = useState({});
   const [q, setQ] = useState('');
+  const [lim, setLim] = useState(30);
   useEffect(() => { try { setDismissed(JSON.parse(localStorage.getItem('daakyehene-dismissed') || '{}')); } catch (e) { /* ignore */ } }, []);
   const keep = (next) => { setDismissed(next); try { localStorage.setItem('daakyehene-dismissed', JSON.stringify(next)); } catch (e) { /* ignore */ } };
   const notOverdue = (s) => keep({ ...dismissed, [s.id]: s.lastDue.toISOString().slice(0, 10) });
@@ -413,13 +414,14 @@ export default function Admin() {
           <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} />
           {note && <div className="msg">{note}</div>}
           {shown.length === 0 && <p><small>No one found.</small></p>}
-          {shown.map((s) => (
+          {shown.slice(0, lim).map((s) => (
             <div className="row" key={s.id}>
               <span><b>{name(s)}</b><br /><small>{s.email}{s.is_admin ? ' · Admin' : ''}</small></span>
               <button type="button" className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
               {s.id !== meId && !s.is_admin && <button type="button" className="btn del sm" onClick={() => removeStudent(s)}>Delete</button>}
             </div>
           ))}
+          {shown.length > lim && <p><button type="button" className="btn alt sm" onClick={() => setLim(lim + 30)}>Show more ({shown.length - lim} left)</button></p>}
         </section>
 
         <section className="card">

@@ -88,6 +88,7 @@ function Card({ r, onChange, onDelete }) {
 export default function RequestsAdmin({ onCount }) {
   const [rows, setRows] = useState(null);
   const [filter, setFilter] = useState('pending');
+  const [lim, setLim] = useState(30);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -139,9 +140,10 @@ export default function RequestsAdmin({ onCount }) {
         {rows === null && !err && <p>Loading…</p>}
         {rows && list.length === 0 && <p><small>No requests here.</small></p>}
       </section>
-      {list.map((r) => (
+      {list.slice(0, lim).map((r) => (
         <Card key={r.id} r={r} onDelete={(id) => setRows((l) => l.filter((x) => x.id !== id))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status } : x)))} />
       ))}
+      {list.length > lim && <p><button type="button" className="btn alt sm" onClick={() => setLim(lim + 30)}>Show more ({list.length - lim} left)</button></p>}
     </>
   );
 }
