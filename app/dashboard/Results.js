@@ -7,9 +7,26 @@ import { supabase } from '../../lib/supabase';
 const MAX_BYTES = 4 * 1024 * 1024;
 const fmt = (s) => new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-async function authHeader() {
-  const { data } = await supabase.auth.getSession();
-  return { Authorization: 'Bearer ' + (data.session ? data.session.access_token : '') };
+// Always send a fresh token. A tab left open for a while can hold an expired one,
+// which the server rejects as "Invalid session".
+async function authHeader(forceRefresh = false) {
+  let { data } = await supabase.auth.getSession();
+  let session = data.session;
+  const expiringSoon = session && session.expires_at && session.expires_at * 1000 < Date.now() + 60 * 1000;
+  if (forceRefresh || expiringSoon) {
+    const r = await supabase.auth.refreshSession();
+    if (r.data && r.data.session) session = r.data.session;
+  }
+  return { Authorization: 'Bearer ' + (session ? session.access_token : '') };
+}
+
+// fetch with auth; if the server says the session is invalid, refresh the token and try once more.
+async function authFetch(url, opts = {}) {
+  let res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), ...(await authHeader()) } });
+  if (res.status === 401) {
+    res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), ...(await authHeader(true)) } });
+  }
+  return res;
 }
 
 // Students: see their own results any time. Admins: upload, view, rename and delete results for any student.
@@ -53,7 +70,7 @@ export default function Results({ isAdmin }) {
     fd.append('title', form.title);
     fd.append('file', file);
     try {
-      const res = await fetch('/api/results', { method: 'POST', headers: await authHeader(), body: fd });
+      const res = await authFetch('/api/results', { method: 'POST', body: fd });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Upload failed');
       setMsg({ t: 'Uploaded.' });
@@ -69,7 +86,7 @@ export default function Results({ isAdmin }) {
     // Open the tab first so phones do not block it, then fill it in.
     const w = window.open('', '_blank');
     try {
-      const res = await fetch('/api/results/' + r.id, { headers: await authHeader() });
+      const res = await authFetch('/api/results/' + r.id);
       if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || 'Could not open this result'); }
       const url = URL.createObjectURL(await res.blob());
       if (w) w.location.href = url; else window.location.href = url;
@@ -80,9 +97,9 @@ export default function Results({ isAdmin }) {
   }
 
   async function saveTitle(r) {
-    const res = await fetch('/api/results/' + r.id, {
+    const res = await authFetch('/api/results/' + r.id, {
       method: 'PATCH',
-      headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: newTitle }),
     });
     const j = await res.json().catch(() => ({}));
@@ -92,7 +109,7 @@ export default function Results({ isAdmin }) {
 
   async function del(r) {
     if (!confirm('Delete "' + r.title + '"? This removes the file from Google Drive too.')) return;
-    const res = await fetch('/api/results/' + r.id, { method: 'DELETE', headers: await authHeader() });
+    const res = await authFetch('/api/results/' + r.id, { method: 'DELETE' });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return setMsg({ err: true, t: j.error || 'Could not delete' });
     load();
