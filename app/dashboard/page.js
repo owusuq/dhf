@@ -201,6 +201,8 @@ export default function Dashboard() {
   const [application, setApplication] = useState(null);
   const [msg, setMsg] = useState('');
   const [navOpen, setNavOpen] = useState(false);
+  const [hidden, setHidden] = useState([]); // parts this person chose to hide (saved on this device only)
+  const [cust, setCust] = useState(false); // is the Show / hide panel open
   const [pending, setPending] = useState(0);
   const isAdminUser = !!(p && p.is_admin);
   useEffect(() => {
@@ -227,6 +229,10 @@ export default function Dashboard() {
   }, [router]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
+    if (!user) return;
+    try { const v = JSON.parse(localStorage.getItem('dhf-hide-' + user) || '[]'); if (Array.isArray(v)) setHidden(v); } catch (e) { /* ignore */ }
+  }, [user]);
+  useEffect(() => {
     try { if (localStorage.getItem('dhf-results')) { localStorage.removeItem('dhf-results'); setTab('results'); } } catch (e) { /* ignore */ }
   }, []);
 
@@ -240,6 +246,22 @@ export default function Dashboard() {
   const next = plan ? nextOccurrence(plan.due_date, plan.frequency) : null;
   const bday = nextBirthday(p.birthday);
   const bd = bday ? daysUntil(bday) : null;
+
+  // Show / hide. Home and Profile can never be hidden, so nobody can lock themselves out.
+  const HOME_PARTS = [['fees', 'Your fees'], ['apply', 'Apply to the Foundation'], ['planprompt', 'Feeding plan reminder'], ['forms', 'Forms (receipt and payment form)'], ['payments', 'Payments you have logged']];
+  const PAGES = [['results', 'Results'], ['data', 'Data Support'], ['plan', 'Feeding plan'], ['request', 'Request']];
+  const ADMIN_PARTS = [['a-panel', 'Open Admin panel button'], ['a-apps', 'Applications button'], ['a-delete', 'Delete students button'], ['budget', 'Budget page'], ['requests', 'Requests page'], ['sendpay', 'Send payment page'], ['fees', 'Student fees page']]; // admins only
+  const isHidden = (k) => hidden.includes(k);
+  const hiddenCount = hidden.filter((k) => HOME_PARTS.concat(PAGES, p.is_admin ? ADMIN_PARTS : []).some(([x]) => x === k)).length;
+  function setHide(next) {
+    setHidden(next);
+    try { localStorage.setItem('dhf-hide-' + user, JSON.stringify(next)); } catch (e) { /* ignore */ }
+  }
+  function toggleHide(k) {
+    const hiding = !isHidden(k);
+    setHide(hiding ? [...hidden, k] : hidden.filter((x) => x !== k));
+    if (hiding && tab === k) setTab('home');
+  }
 
   async function saveProfile(e) {
     e.preventDefault();
@@ -267,7 +289,7 @@ export default function Dashboard() {
             ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
             ['My account', [['plan', 'Feeding plan'], ['me', 'Profile'], ['request', 'Request']]],
             ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests'], ['sendpay', 'Send payment'], ['fees', 'Student fees']]]] : []),
-          ].map(([title, items]) => (
+          ].map(([title, items]) => [title, items.filter(([k]) => !isHidden(k))]).filter(([, items]) => items.length).map(([title, items]) => (
             <div className="gnav-g" key={title}>
               <div className="gnav-t">{title}</div>
               <div className="gnav-r">
@@ -277,13 +299,47 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+          <div className="gnav-g">
+            <div className="gnav-t">Personalise</div>
+            <div className="gnav-r"><button type="button" onClick={() => { setCust(true); setNavOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Show / hide parts</button></div>
+          </div>
         </nav>}
+        {cust && (
+          <section className="card">
+            <h2>Show or hide</h2>
+            <p><small>Tick what you want to see. This only changes your own screen on this device, and you can bring anything back at any time.</small></p>
+            <h3>On the Home page</h3>
+            {HOME_PARTS.map(([k, label]) => (
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '.35rem 0', fontWeight: 500 }}>
+                <input type="checkbox" style={{ width: '1.3rem', height: '1.3rem', minHeight: 0, padding: 0, flex: 'none', border: 0, boxShadow: 'none', background: 'transparent' }} checked={!isHidden(k)} onChange={() => toggleHide(k)} /> {label}
+              </label>
+            ))}
+            <h3 style={{ marginTop: 14 }}>Pages</h3>
+            {PAGES.map(([k, label]) => (
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '.35rem 0', fontWeight: 500 }}>
+                <input type="checkbox" style={{ width: '1.3rem', height: '1.3rem', minHeight: 0, padding: 0, flex: 'none', border: 0, boxShadow: 'none', background: 'transparent' }} checked={!isHidden(k)} onChange={() => toggleHide(k)} /> {label}
+              </label>
+            ))}
+            {p.is_admin && (<>
+              <h3 style={{ marginTop: 14 }}>Admin tools (only you see this)</h3>
+              {ADMIN_PARTS.map(([k, label]) => (
+              <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '.35rem 0', fontWeight: 500 }}>
+                <input type="checkbox" style={{ width: '1.3rem', height: '1.3rem', minHeight: 0, padding: 0, flex: 'none', border: 0, boxShadow: 'none', background: 'transparent' }} checked={!isHidden(k)} onChange={() => toggleHide(k)} /> {label}
+              </label>
+              ))}
+            </>)}
+            <p style={{ margin: '12px 0 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn" onClick={() => setCust(false)}>Done</button>
+              <button type="button" className="btn alt" onClick={() => setHide([])}>Show everything</button>
+            </p>
+          </section>
+        )}
         </>
 
         {tab === 'home' && (<>
-          {p.is_admin && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
-          {p.is_admin && <Link className="btn admin-go" href="/admin/applications">Applications</Link>}
-          {p.is_admin && <Link className="btn admin-go" href="/admin/delete">Delete students</Link>}
+          {p.is_admin && !isHidden('a-panel') && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
+          {p.is_admin && !isHidden('a-apps') && <Link className="btn admin-go" href="/admin/applications">Applications</Link>}
+          {p.is_admin && !isHidden('a-delete') && <Link className="btn admin-go" href="/admin/delete">Delete students</Link>}
           <ReceivedPayments userId={user} />
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
@@ -297,28 +353,29 @@ export default function Dashboard() {
               <div className="stat"><small>Birthday</small><b>{bd === null ? 'Add yours in Profile' : bd === 0 ? 'Today' : bd + ' days'}</b></div>
             </div>
           </section>
-          <section className="card fees-card">
+          {!isHidden('fees') && (<section className="card fees-card">
             <h2>Your fees</h2>
             {(total > 0 || p.fees_owing != null) ? (<>
               <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{owing > 0 ? `You owe ${money(owing)}` : 'Nothing owing. Thank you!'}</b></p>
               {total > 0 && <p><small>Full fees {money(total)}</small></p>}
             </>) : <p>Your full fees have not been entered yet. The Foundation will update this soon.</p>}
             <FeeTerms terms={terms} />
-          </section>
-          <section className="card">
+          </section>)}
+          {!isHidden('apply') && (<section className="card">
             <h2>Apply to the Daakyehene Foundation</h2>
             {application
               ? <p>Your application: <b>{application.status === 'pending' ? 'Pending' : application.status === 'accepted' ? 'Accepted' : 'Not accepted'}</b></p>
               : <p>Want to join? Send your application in a few minutes.</p>}
             <Link className="btn" href="/apply">{application ? 'View application' : 'Apply now'}</Link>
-          </section>
-          {!plan && <section className="card"><h2>Set up your feeding plan</h2><p>Choose how often you pay and get calendar reminders.</p><button className="btn" onClick={() => setTab('plan')}>Set it up</button></section>}
-          <section className="card">
+          </section>)}
+          {!plan && !isHidden('planprompt') && <section className="card"><h2>Set up your feeding plan</h2><p>Choose how often you pay and get calendar reminders.</p><button className="btn" onClick={() => setTab('plan')}>Set it up</button></section>}
+          {!isHidden('forms') && (<section className="card">
             <h2>Forms</h2>
             <a className="btn" href={UPLOAD_FORM} target="_blank" rel="noreferrer">Upload a receipt</a>{' '}
             <a className="btn alt" href={PAYMENT_FORM} target="_blank" rel="noreferrer">Payment form</a>
-          </section>
-          <Payments userId={user} rows={pays} reload={load} />
+          </section>)}
+          {!isHidden('payments') && <Payments userId={user} rows={pays} reload={load} />}
+          <p style={{ textAlign: 'center', margin: '4px 0 0' }}><button type="button" className="btn alt sm" onClick={() => { setCust(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Show / hide parts{hiddenCount > 0 ? ' (' + hiddenCount + ' hidden)' : ''}</button></p>
         </>)}
 
         {tab === 'budget' && p.is_admin && <Budget userId={user} />}
@@ -360,7 +417,7 @@ export default function Dashboard() {
         )}
       </div>
       <div className="btabs" role="navigation" aria-label="Main tabs">
-        {[['home', 'Home', '🏠'], ['results', 'Results', '🎓'], ['data', 'Data', '📶'], ['plan', 'Plan', '🗓️'], ['me', 'Profile', '👤']].map(([k, label, ic]) => (
+        {[['home', 'Home', '🏠'], ['results', 'Results', '🎓'], ['data', 'Data', '📶'], ['plan', 'Plan', '🗓️'], ['me', 'Profile', '👤']].filter(([k]) => !isHidden(k)).map(([k, label, ic]) => (
           <button key={k} type="button" className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => { setTab(k); setNavOpen(false); window.scrollTo({ top: 0 }); }}>
             <span aria-hidden="true">{ic}</span><small>{label}</small>
           </button>
