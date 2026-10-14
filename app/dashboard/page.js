@@ -26,6 +26,47 @@ const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short
 const NETWORKS = ['MTN MoMo', 'Telecel Cash', 'AT Money'];
 const TITLE = 'Daakyehene Foundation feeding payment';
 
+// Read-only: shows the student the terms the Foundation has set (Term 1, Term 2 ...).
+// Students cannot change these. Only the admin can, from the Student fees tab.
+function FeeTerms({ terms, paid }) {
+  if (!terms || !terms.length) return null;
+  let left = Number(paid) || 0;
+  const rows = terms.map((t) => {
+    const amt = Number(t.amount || 0);
+    const pd = Math.min(left, amt);
+    left -= pd;
+    return { ...t, amt, pd, ow: amt - pd };
+  });
+  const years = [];
+  rows.forEach((r) => { const y = (r.year_label || '').trim(); if (!years.includes(y)) years.push(y); });
+  return (
+    <div className="ft">
+      <style dangerouslySetInnerHTML={{ __html: '.ft{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.ft h3{margin:0 0 6px;font-size:1rem}.ft-yr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;margin-top:8px;padding:7px 10px;border-radius:10px;background:#f5f8fb;font-size:.9rem}.ft-row{display:flex;align-items:center;gap:10px;padding:.55rem .1rem;border-top:1px solid var(--line)}.ft-row>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}.ft-row small{display:block;color:#6b7785}.ft-row .fee-tag{margin:0;white-space:nowrap}html.dark .ft-yr{background:rgba(255,255,255,.07)}html.dark .ft-row small{color:#9fb0c4}' }} />
+      <h3>Your terms</h3>
+      {years.map((y) => {
+        const g = rows.filter((r) => (r.year_label || '').trim() === y);
+        const yt = g.reduce((t, r) => t + r.amt, 0);
+        const yp = g.reduce((t, r) => t + r.pd, 0);
+        return (
+          <div key={y || 'none'}>
+            {(years.length > 1 || y) && <div className="ft-yr"><b>{y ? 'Year ' + y : 'Other'}</b><span>Fees {money(yt)} · Owing {money(yt - yp)}</span></div>}
+            {g.map((r) => {
+              const info = feeInfo(r.amt, r.ow, r.amt > 0 ? Math.min(100, Math.round((r.pd / r.amt) * 100)) : 0);
+              return (
+                <div className="ft-row" key={r.id}>
+                  <span><b>{r.term_name}</b><small>Fee {money(r.amt)} · Paid {money(r.pd)}</small></span>
+                  <span className={'fee-tag sm ' + info.cls}>{r.ow > 0 ? 'Owing ' + money(r.ow) : 'Paid'}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+      <p style={{ margin: '8px 0 0' }}><small>Payments are counted against the earliest term first.</small></p>
+    </div>
+  );
+}
+
 function FeedingPlan({ userId, plan, reload, phone }) {
   const [edit, setEdit] = useState(!plan);
   const [freq, setFreq] = useState(plan?.frequency || 'monthly');
@@ -159,6 +200,7 @@ export default function Dashboard() {
   const [p, setP] = useState(null);
   const [plan, setPlan] = useState(null);
   const [pays, setPays] = useState([]);
+  const [terms, setTerms] = useState([]);
   const [application, setApplication] = useState(null);
   const [msg, setMsg] = useState('');
   const [navOpen, setNavOpen] = useState(false);
@@ -174,15 +216,17 @@ export default function Dashboard() {
     if (!data.session) return router.replace('/');
     const uid = data.session.user.id;
     setUser(uid);
-    const [a, b, c, d] = await Promise.all([
+    const [a, b, c, d, e] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', uid).single(),
       supabase.from('due_dates').select('*').eq('user_id', uid).order('created_at').limit(1),
       supabase.from('payments').select('*').eq('user_id', uid).order('paid_on', { ascending: false }),
       supabase.from('applications').select('status').eq('user_id', uid).eq('program', 'Daakyehene Foundation').maybeSingle(),
+      supabase.from('fee_terms').select('*').eq('user_id', uid).order('created_at'),
     ]);
     if (a.error || !a.data) { await supabase.auth.signOut(); return router.replace('/'); }
     setP(a.data); setPlan((b.data || [])[0] || null); setPays(c.data || []);
     setApplication(d.data || null);
+    setTerms(e && !e.error ? (e.data || []) : []);
   }, [router]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -262,6 +306,7 @@ export default function Dashboard() {
               <p style={{ fontSize: '1.6rem', margin: '4px 0' }}><b>{owing > 0 ? `You owe ${money(owing)}` : 'Nothing owing. Thank you!'}</b></p>
               {total > 0 && <p><small>Full fees {money(total)}</small></p>}
             </>) : <p>Your full fees have not been entered yet. The Foundation will update this soon.</p>}
+            <FeeTerms terms={terms} paid={paid} />
           </section>
           <section className="card">
             <h2>Apply to the Daakyehene Foundation</h2>
