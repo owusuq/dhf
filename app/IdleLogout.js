@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const IDLE_MS = 5 * 60 * 1000;
-const DEBUG = true;
+const DEBUG = false;
 const EVENTS = ['mousemove', 'mousedown', 'keydown', 'click', 'scroll', 'wheel', 'touchstart', 'touchmove', 'pointerdown', 'input'];
 
 export default function IdleLogout() {
