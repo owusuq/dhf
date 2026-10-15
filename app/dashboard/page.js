@@ -40,7 +40,7 @@ function FeeTerms({ terms }) {
   return (
     <div className="ft">
       <style dangerouslySetInnerHTML={{ __html: '.ft{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}.ft h3{margin:0 0 6px;font-size:1rem}.ft-yr{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;margin-top:8px;padding:7px 10px;border-radius:10px;background:#f5f8fb;font-size:.9rem}.ft-row{display:flex;align-items:center;gap:10px;padding:.55rem .1rem;border-top:1px solid var(--line)}.ft-row>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere}.ft-row small{display:block;color:#6b7785}.ft-row .fee-tag{margin:0;white-space:nowrap}html.dark .ft-yr{background:rgba(255,255,255,.07)}html.dark .ft-row small{color:#9fb0c4}' }} />
-      <h3>Your terms</h3>
+      <h3>Your levels</h3>
       {years.map((y) => {
         const g = rows.filter((r) => (r.year_label || '').trim() === y);
         const yt = g.reduce((t, r) => t + r.fee, 0);
