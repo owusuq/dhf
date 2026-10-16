@@ -56,7 +56,7 @@ export default function Donate() {
     <main>
       <section className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '.8rem' }}>
-          <img src="/logo.jpeg" alt="Daakyehene Foundation" width="64" height="64" style={{ borderRadius: '50%' }} />
+          <Link href="/" aria-label="Daakyehene Foundation home" style={{ display: 'flex', border: 0, padding: 0, background: 'none' }}><img src="/logo.jpeg" alt="Daakyehene Foundation" width="64" height="64" style={{ borderRadius: '50%' }} /></Link>
           <h2 style={{ margin: 0 }}>Support a student ❤️</h2>
         </div>
         <p>Your gift helps students at the Daakyehene Foundation stay in school. Thank you!</p>
