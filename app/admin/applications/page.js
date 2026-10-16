@@ -38,7 +38,8 @@ function AppCard({ a, onChange, onDelete }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const first = (a.name || 'student').split(' ')[0];
-  const acceptMsg = `Hello ${first}, congratulations! Your application to the ${a.program} has been accepted. Please check your student portal for the next steps. Daakyehene Foundation`;
+  const table = a.src === 'join' ? 'join_applications' : 'applications';
+  const acceptMsg = `Hello ${first}, congratulations! Your application to the ${a.program} has been accepted. ${a.src === 'join' ? 'We will contact you with the next steps.' : 'Please check your student portal for the next steps.'} Daakyehene Foundation`;
   const declineMsg = `Hello ${first}, thank you for applying to the ${a.program}. We could not take your application this time. Please contact us if you have any questions. Daakyehene Foundation`;
   const text = custom ?? (a.status === 'accepted' ? acceptMsg : declineMsg);
   const phone = intl(a.phone);
@@ -48,13 +49,13 @@ function AppCard({ a, onChange, onDelete }) {
     setBusy(true);
     setErr('');
     const r = await supabase
-      .from('applications')
+      .from(table)
       .update({ status, decided_at: status === 'pending' ? null : new Date().toISOString() })
       .eq('id', a.id)
       .select();
     setBusy(false);
     if (r.error) return setErr(r.error.message);
-    if (!r.data || !r.data.length) return setErr('Nothing was saved. Run supabase/applications.sql in Supabase first.');
+    if (!r.data || !r.data.length) return setErr('Nothing was saved. Run the matching SQL file from the supabase folder in Supabase first.');
     setCustom(null);
     onChange(r.data[0]);
   }
@@ -63,7 +64,7 @@ function AppCard({ a, onChange, onDelete }) {
     if (!window.confirm('Delete this declined application permanently?')) return;
     setBusy(true);
     setErr('');
-    const r = await supabase.from('applications').delete().eq('id', a.id).select('id');
+    const r = await supabase.from(table).delete().eq('id', a.id).select('id');
     setBusy(false);
     if (r.error) return setErr(r.error.message);
     if (!r.data || !r.data.length) return setErr('Nothing was deleted. Run supabase/applications_delete.sql in Supabase first.');
@@ -76,7 +77,7 @@ function AppCard({ a, onChange, onDelete }) {
         <b>{a.name || '(no name)'}</b>
         <Pill status={a.status} />
       </div>
-      <p><small>{a.level || 'Level not set'} · applied {day(a.created_at)}</small></p>
+      <p><small>{a.level || 'Level not set'} · applied {day(a.created_at)}{a.src === 'join' ? ' · via application link' : ''}</small></p>
       <p><small>{a.email}{phone ? ' · ' + phone : ''}</small></p>
       <p><small>Why they want to join</small><br />{a.reason}</p>
       {err && <div className="msg err">{err}</div>}
@@ -111,23 +112,34 @@ export default function Applications() {
   const [rows, setRows] = useState(null);
   const [filter, setFilter] = useState('pending');
   const [err, setErr] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(window.location.origin + '/join'); } catch (e) { /* ignore */ }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
 
   const load = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return router.replace('/');
     const me = await supabase.from('profiles').select('is_admin').eq('id', data.session.user.id).single();
     if (!me.data || !me.data.is_admin) return router.replace('/');
-    const [a, p] = await Promise.all([
+    const [a, p, j] = await Promise.all([
       supabase.from('applications').select('*').order('created_at', { ascending: false }),
       supabase.from('profiles').select('id, full_name, email, level, phone'),
+      supabase.from('join_applications').select('*').order('created_at', { ascending: false }),
     ]);
     if (a.error) return setErr(a.error.message + ' (Run supabase/applications.sql in Supabase first.)');
+    if (j.error) return setErr(j.error.message + ' (Run supabase/join_applications.sql in Supabase first.)');
     const byId = {};
     (p.data || []).forEach((x) => { byId[x.id] = x; });
-    setRows((a.data || []).map((x) => {
+    const portal = (a.data || []).map((x) => {
       const pr = byId[x.user_id] || {};
-      return { ...x, name: pr.full_name, email: pr.email, level: pr.level, phone: x.phone || pr.phone };
-    }));
+      return { ...x, src: 'portal', name: pr.full_name, email: pr.email, level: pr.level, phone: x.phone || pr.phone };
+    });
+    const joined = (j.data || []).map((x) => ({ ...x, src: 'join' }));
+    setRows([...portal, ...joined].sort((m, n) => new Date(n.created_at) - new Date(m.created_at)));
   }, [router]);
 
   useEffect(() => { load(); }, [load]);
@@ -137,8 +149,10 @@ export default function Applications() {
     if (!n || !window.confirm('Delete all ' + n + ' declined applications permanently?')) return;
     setErr('');
     const r = await supabase.from('applications').delete().eq('status', 'declined').select('id');
+    const r2 = await supabase.from('join_applications').delete().eq('status', 'declined').select('id');
     if (r.error) return setErr(r.error.message);
-    if (!r.data || !r.data.length) return setErr('Nothing was deleted. Run supabase/applications_delete.sql in Supabase first.');
+    if (r2.error) return setErr(r2.error.message);
+    if (!(r.data || []).length && !(r2.data || []).length) return setErr('Nothing was deleted. Run supabase/applications_delete.sql in Supabase first.');
     setRows((l) => l.filter((x) => x.status !== 'declined'));
   }
 
@@ -150,7 +164,10 @@ export default function Applications() {
     <main>
       <section className="card">
         <h2>Applications</h2>
-        <p><Link className="btn alt sm" href="/admin">Back to admin</Link></p>
+        <p>
+          <Link className="btn alt sm" href="/admin">Back to admin</Link>{' '}
+          <button type="button" className="btn sm" onClick={copyLink}>{copied ? 'Link copied ✓' : 'Copy application link'}</button>
+        </p>
         <div className="choice">
           {tabs.map(([k, label]) => (
             <button key={k} type="button" className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>
@@ -166,7 +183,7 @@ export default function Applications() {
         {rows && list.length === 0 && <Empty icon="📝" title="No applications here" />}
       </section>
       {list.map((a) => (
-        <AppCard key={a.id} a={a} onDelete={(id) => setRows((l) => l.filter((x) => x.id !== id))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />
+        <AppCard key={a.src + a.id} a={a} onDelete={(id) => setRows((l) => l.filter((x) => !(x.id === id && x.src === a.src)))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id && x.src === a.src ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />
       ))}
     </main>
   );
