@@ -507,3 +507,12 @@ html.dark .gl{--g-ink:#fff;--g-muted:rgba(255,255,255,.74);--g-fill:rgba(255,255
 @media (min-width:1600px){.gl-split,.gl-bar{width:min(100%,1280px)}}
 @media (prefers-reduced-motion:reduce){.gl-orbs i{animation:none}.gl *{transition:none!important}}
 /* ==== GLASS LOGIN END ==== */
+
+/* ==== WATERMARK START ==== */
+body::before{content:"";position:fixed;z-index:-1;left:50%;top:50%;width:min(78vmin,560px);aspect-ratio:1;transform:translate(-50%,-50%);background:url('/watermark.png') center/contain no-repeat;opacity:.07;pointer-events:none}
+html.dark body::before{filter:brightness(0) invert(1);opacity:.06}
+.card.hero>*{position:relative;z-index:1}
+.card.hero::after{content:"";position:absolute;z-index:0;right:-4rem;bottom:-4rem;width:min(18rem,70%);aspect-ratio:1;background:url('/watermark.png') center/contain no-repeat;filter:brightness(0) invert(1);opacity:.1;pointer-events:none}
+.lg-hero>*{position:relative;z-index:1}
+@media print{body::before,.card.hero::after{display:none}}
+/* ==== WATERMARK END ==== */
