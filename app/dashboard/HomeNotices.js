@@ -6,6 +6,15 @@ import { supabase } from '../../lib/supabase';
 const when = (iso) => new Date(iso).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const isUrl = (s) => /^https?:\/\//i.test(s || '');
 
+// Turns web addresses typed in the meeting note into tappable links. Everything else stays plain text.
+function Linked({ text }) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//i.test(part)
+      ? <a key={i} href={part} target={part.includes(window.location.host) ? undefined : '_blank'} rel="noreferrer">{part}</a>
+      : part
+  );
+}
+
 // Small cards at the top of Home: agreement to sign (students) and the next monthly meeting.
 export default function HomeNotices({ userId, isAdmin, onGo }) {
   const [needSign, setNeedSign] = useState(false);
@@ -39,7 +48,7 @@ export default function HomeNotices({ userId, isAdmin, onGo }) {
           <h2>📅 {meeting.title}</h2>
           <p><b>{when(meeting.starts_at)}</b></p>
           {meeting.place && <p>{isUrl(meeting.place) ? <a href={meeting.place} target="_blank" rel="noreferrer">Join the meeting</a> : meeting.place}</p>}
-          {meeting.notes && <p><small>{meeting.notes}</small></p>}
+          {meeting.notes && <p><small><Linked text={meeting.notes} /></small></p>}
         </section>
       )}
       {isAdmin && !meeting && (
