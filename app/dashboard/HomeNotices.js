@@ -22,10 +22,13 @@ export default function HomeNotices({ userId, isAdmin, onGo }) {
 
   useEffect(() => {
     (async () => {
-      const m = await supabase.from('meetings').select('*').gte('starts_at', new Date(Date.now() - 3 * 3600 * 1000).toISOString()).order('starts_at', { ascending: true }).limit(1);
+      // Ask for the meeting and the agreement at the same time instead of one after the other.
+      const [m, d] = await Promise.all([
+        supabase.from('meetings').select('*').gte('starts_at', new Date(Date.now() - 3 * 3600 * 1000).toISOString()).order('starts_at', { ascending: true }).limit(1),
+        isAdmin ? Promise.resolve({ data: null }) : supabase.from('agreement_doc').select('version, body').eq('id', 1).maybeSingle(),
+      ]);
       setMeeting(m.error ? null : (m.data && m.data[0]) || null);
       if (isAdmin) return;
-      const d = await supabase.from('agreement_doc').select('version, body').eq('id', 1).maybeSingle();
       if (!d.data || !d.data.body || !d.data.body.trim()) return;
       const s = await supabase.from('agreement_signatures').select('id').eq('user_id', userId).eq('version', d.data.version).maybeSingle();
       setNeedSign(!s.data);
