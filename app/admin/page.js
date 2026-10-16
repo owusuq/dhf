@@ -386,7 +386,7 @@ export default function Admin() {
 
   function csv() {
     const head = 'Name,Email,Phone,Level,Birthday,Option,Fees,Paid,Balance,Feeding plan,Next payment';
-    const body = rows.map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, (s.fees_owing != null ? s.fees_owing : s.fees_total - s.paid), s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
+    const body = rows.filter((s) => !s.is_admin).map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, (s.fees_owing != null ? s.fees_owing : s.fees_total - s.paid), s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([[head, ...body].join('\n')], { type: 'text/csv' }));
     a.download = 'students.csv';
@@ -394,9 +394,9 @@ export default function Admin() {
   }
   if (!rows) return <div className="wrap"><Skeleton lines={5} /></div>;
 
-  const soon = rows.filter((s) => s.status === 'soon');
+  const soon = rows.filter((s) => s.status === 'soon' && !s.is_admin);
   const isHidden = (s) => s.lastDue && dismissed[s.id] === s.lastDue.toISOString().slice(0, 10);
-  const overdueAll = rows.filter((s) => s.status === 'overdue');
+  const overdueAll = rows.filter((s) => s.status === 'overdue' && !s.is_admin);
   const overdue = overdueAll.filter((s) => !isHidden(s));
   const hidden = overdueAll.length - overdue.length;
   const name = (s) => s.full_name || s.email;
