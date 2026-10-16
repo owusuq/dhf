@@ -514,5 +514,7 @@ html.dark body::before{filter:brightness(0) invert(1);opacity:.06}
 .card.hero>*{position:relative;z-index:1}
 .card.hero::after{content:"";position:absolute;z-index:0;right:-4rem;bottom:-4rem;width:min(18rem,70%);aspect-ratio:1;background:url('/watermark.png') center/contain no-repeat;filter:brightness(0) invert(1);opacity:.1;pointer-events:none}
 .lg-hero>*{position:relative;z-index:1}
-@media print{body::before,.card.hero::after{display:none}}
+.gl-orbs::after{content:"";position:absolute;left:50%;top:50%;width:min(86vmin,640px);aspect-ratio:1;transform:translate(-50%,-50%);background:url('/watermark.png') center/contain no-repeat;opacity:.1;pointer-events:none}
+html.dark .gl-orbs::after{filter:brightness(0) invert(1);opacity:.07}
+@media print{body::before,.card.hero::after,.gl-orbs::after{display:none}}
 /* ==== WATERMARK END ==== */
