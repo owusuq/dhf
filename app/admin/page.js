@@ -452,11 +452,11 @@ export default function Admin() {
             <thead><tr><th>Name</th><th>Email</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th><th>Access</th><th>Details</th></tr></thead>
             <tbody>
               {rows.map((s) => (
-                <tr key={s.id}><td>{name(s)}</td><td>{s.email}</td><td>{s.level}</td><td>{s.phone}</td><td>{s.birthday}</td>
-                  <td>{s.fees_total}</td><td>{s.paid}</td><td>{s.fees_owing != null ? s.fees_owing : Math.max(0, s.fees_total - s.paid)}</td>
-                  <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td>
-                  <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
-                  <td><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
+                <tr key={s.id}><td data-label="Name">{name(s)}</td><td data-label="Email">{s.email}</td><td data-label="Level">{s.level}</td><td data-label="Phone">{s.phone}</td><td data-label="Birthday">{s.birthday}</td>
+                  <td data-label="Fees">{s.fees_total}</td><td data-label="Paid">{s.paid}</td><td data-label="Balance">{s.fees_owing != null ? s.fees_owing : Math.max(0, s.fees_total - s.paid)}</td>
+                  <td data-label="Feeding plan">{s.plan || 'Not set'}</td><td data-label="Next payment">{fmt(s.next)}</td>
+                  <td data-label="Access">{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
+                  <td data-label="Details"><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
               ))}
             </tbody>
           </table>
