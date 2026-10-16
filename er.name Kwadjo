@@ -1,0 +1,17 @@
+ app/AgreementText.js            |  13 [32m+++[m
+ app/admin/page.js               |  16 [32m++[m[31m--[m
+ app/agreement/page.js           |  94 [32m+++++++++++++++++++++[m
+ app/dashboard/AgreementAdmin.js | 181 [32m++++++++++++++++++++++++++++++++++++++++[m
+ app/dashboard/DonationsAdmin.js | 142 [31m-------------------------------[m
+ app/dashboard/HomeNotices.js    |  54 [32m++++++++++++[m
+ app/dashboard/MeetingsAdmin.js  | 130 [32m+++++++++++++++++++++++++++++[m
+ app/dashboard/SendPayment.js    |   4 [32m+[m[31m-[m
+ app/dashboard/page.js           |  14 [32m+++[m[31m-[m
+ app/donate/page.js              | 126 [31m----------------------------[m
+ app/globals.css                 |  58 [31m-------------[m
+ app/page.js                     |   9 [32m++[m
+ lib/agreement-default.js        |  21 [32m+++++[m
+ public/watermark.png            | Bin [31m163663[m -> [32m0[m bytes
+ supabase/agreement.sql          |  73 [32m++++++++++++++++[m
+ supabase/donations.sql          |  37 [31m--------[m
+ 16 files changed, 596 insertions(+), 376 deletions(-)
