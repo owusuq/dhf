@@ -547,3 +547,21 @@ h1,h2,h3,h4,p,li,a,td,th,label,small,.msg{overflow-wrap:anywhere}
 }
 @media (max-width:360px){html{font-size:14px}.card{padding:.75rem}}
 /* ==== MOBILE FIT END ==== */
+
+/* ==== DESKTOP TABLE START ==== */
+@media (min-width:701px){
+  .wrap:has(.scroll table){width:min(100%,1440px)}
+  .scroll{overflow-x:auto}
+  .scroll table{min-width:1120px;border-collapse:separate;border-spacing:0;font-size:.9rem}
+  .scroll th,.scroll td{overflow-wrap:normal;word-break:normal;white-space:nowrap;text-align:left;vertical-align:middle;padding:.75rem .8rem}
+  .scroll th{font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--green-d);border-bottom:2px solid var(--gold);padding-bottom:.65rem}
+  .scroll td{border-bottom:1px solid var(--line)}
+  .scroll td:first-child{font-weight:700}
+  .scroll td:nth-child(9){white-space:normal;min-width:170px}
+  .scroll td .btn{white-space:nowrap;min-height:0;padding:.4rem .85rem}
+  .scroll tbody tr:nth-child(even) td{background:rgba(18,56,94,.04)}
+  .scroll tbody tr:hover td{background:rgba(201,162,39,.12)}
+  html.dark .scroll th{color:#ffe38a}
+  html.dark .scroll tbody tr:nth-child(even) td{background:rgba(255,255,255,.04)}
+}
+/* ==== DESKTOP TABLE END ==== */
