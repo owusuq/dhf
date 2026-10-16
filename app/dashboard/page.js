@@ -16,6 +16,9 @@ const Results = dynamic(() => import('./Results'), { ssr: false, loading: () => 
 const DataSupport = dynamic(() => import('./DataSupport'), { ssr: false, loading: () => <Skeleton /> });
 const DataSupportAdmin = dynamic(() => import('./DataSupportAdmin'), { ssr: false, loading: () => <Skeleton /> });
 const RequestsAdmin = dynamic(() => import('./RequestsAdmin'), { ssr: false, loading: () => <Skeleton /> });
+const AgreementAdmin = dynamic(() => import('./AgreementAdmin'), { ssr: false, loading: () => <Skeleton /> });
+const MeetingsAdmin = dynamic(() => import('./MeetingsAdmin'), { ssr: false, loading: () => <Skeleton /> });
+import HomeNotices from './HomeNotices';
 const DonationsAdmin = dynamic(() => import('./DonationsAdmin'), { ssr: false, loading: () => <Skeleton /> });
 const RequestTab = dynamic(() => import('./RequestTab'), { ssr: false, loading: () => <Skeleton /> });
 const SendPayment = dynamic(() => import('./SendPayment'), { ssr: false, loading: () => <Skeleton /> });
@@ -253,7 +256,7 @@ export default function Dashboard() {
   // Show / hide. Home and Profile can never be hidden, so nobody can lock themselves out.
   const HOME_PARTS = [['fees', 'Your fees'], ['apply', 'Apply to the Foundation'], ['planprompt', 'Feeding plan reminder'], ['forms', 'Forms (receipt and payment form)'], ['payments', 'Payments you have logged']];
   const PAGES = [['results', 'Results'], ['data', 'Data Support'], ['plan', 'Feeding plan'], ['request', 'Request']];
-  const ADMIN_PARTS = [['a-panel', 'Open Admin panel button'], ['a-apps', 'Applications button'], ['a-delete', 'Delete students button'], ['budget', 'Budget page'], ['requests', 'Requests page'], ['donations', 'Donations page'], ['sendpay', 'Send payment page'], ['fees', 'Student fees page']]; // admins only
+  const ADMIN_PARTS = [['a-panel', 'Open Admin panel button'], ['a-apps', 'Applications button'], ['a-delete', 'Delete students button'], ['budget', 'Budget page'], ['requests', 'Requests page'], ['donations', 'Donations page'], ['agreement', 'Agreement page'], ['meetings', 'Meetings page'], ['sendpay', 'Send payment page'], ['fees', 'Student fees page']]; // admins only
   const isHidden = (k) => hidden.includes(k);
   const hiddenCount = hidden.filter((k) => HOME_PARTS.concat(PAGES, p.is_admin ? ADMIN_PARTS : []).some(([x]) => x === k)).length;
   function setHide(next) {
@@ -285,13 +288,13 @@ export default function Dashboard() {
       <div className="wrap">
         <>
         <style dangerouslySetInnerHTML={{ __html: ".gnav-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.gnav-bar button{width:48px;height:40px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:#fff;font-size:22px;line-height:1;cursor:pointer}.gnav{background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:12px;padding:8px 10px;margin-bottom:14px}.gnav-g+.gnav-g{margin-top:6px;padding-top:6px;border-top:1px solid rgba(0,0,0,.08)}.gnav-t{font-size:12px;color:#7a7a7a;padding:4px 6px}.gnav-r{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px}.gnav-r button{height:42px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:transparent;color:inherit;font-size:14px;cursor:pointer}.gnav-r button.on{background:#1e3a5f;border-color:#1e3a5f;color:#fff;font-weight:600}" }} />
-        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3', requests: 'Requests', donations: 'Donations', request: 'Request', sendpay: 'Send payment', fees: 'Student fees' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}{pending + pendingDon > 0 && <span className="rq-badge rq-corner">{pending + pendingDon > 99 ? '99+' : pending + pendingDon}</span>}</button></div>
+        <div className="gnav-bar"><b>{({ home: 'Home', results: 'Results', data: 'Data Support', plan: 'Feeding plan', me: 'Profile', budget: 'Budget \u00a3', requests: 'Requests', donations: 'Donations', agreement: 'Agreement', meetings: 'Meetings', request: 'Request', sendpay: 'Send payment', fees: 'Student fees' })[tab]}</b><button type="button" aria-label="Menu" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>{'\u22ef'}{pending + pendingDon > 0 && <span className="rq-badge rq-corner">{pending + pendingDon > 99 ? '99+' : pending + pendingDon}</span>}</button></div>
         {navOpen && <nav className="gnav" role="tablist">
           {[
             ['Overview', [['home', 'Home']]],
             ['Learning', [['results', 'Results'], ['data', 'Data Support']]],
             ['My account', [['plan', 'Feeding plan'], ['me', 'Profile'], ['request', 'Request']]],
-            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests'], ['donations', 'Donations'], ['sendpay', 'Send payment'], ['fees', 'Student fees']]]] : []),
+            ...(p.is_admin ? [['Admin tools', [['budget', 'Budget \u00a3'], ['requests', 'Requests'], ['donations', 'Donations'], ['agreement', 'Agreement'], ['meetings', 'Meetings'], ['sendpay', 'Send payment'], ['fees', 'Student fees']]]] : []),
           ].map(([title, items]) => [title, items.filter(([k]) => !isHidden(k))]).filter(([, items]) => items.length).map(([title, items]) => (
             <div className="gnav-g" key={title}>
               <div className="gnav-t">{title}</div>
@@ -343,6 +346,7 @@ export default function Dashboard() {
           {p.is_admin && !isHidden('a-panel') && <Link className="btn admin-go" href="/admin">Open Admin panel</Link>}
           {p.is_admin && !isHidden('a-apps') && <Link className="btn admin-go" href="/admin/applications">Applications</Link>}
           {p.is_admin && !isHidden('a-delete') && <Link className="btn admin-go" href="/admin/delete">Delete students</Link>}
+          {user && <HomeNotices userId={user} isAdmin={!!p.is_admin} onGo={setTab} />}
           <ReceivedPayments userId={user} />
           {bd === 0 && <div className="party">Happy birthday, {p.full_name || 'friend'}! 🎉</div>}
           <section className="card hero">
@@ -386,6 +390,10 @@ export default function Dashboard() {
         {tab === 'requests' && p.is_admin && <RequestsAdmin onCount={setPending} />}
 
         {tab === 'donations' && p.is_admin && <DonationsAdmin onCount={setPendingDon} />}
+
+        {tab === 'agreement' && p.is_admin && <AgreementAdmin />}
+
+        {tab === 'meetings' && p.is_admin && <MeetingsAdmin />}
 
         {tab === 'sendpay' && p.is_admin && <SendPayment adminId={user} />}
 

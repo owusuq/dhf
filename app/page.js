@@ -20,7 +20,16 @@ const takeApply = () => {
 
 const rememberResults = () => { try { localStorage.setItem('dhf-results', '1'); } catch (e) { /* ignore */ } };
 
+function nextPath() {
+  try {
+    const n = new URLSearchParams(window.location.search).get('next');
+    return n && n.startsWith('/') && !n.startsWith('//') ? n : null;
+  } catch (e) { return null; }
+}
+
 async function destination(uid) {
+  const next = nextPath();
+  if (next) return next;
   if (!takeApply()) return '/dashboard';
   const a = await supabase.from('applications').select('id').eq('user_id', uid).eq('program', 'Daakyehene Foundation').maybeSingle();
   return a.data ? '/dashboard' : '/apply';

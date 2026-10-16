@@ -25,8 +25,8 @@ export default function SendPayment({ adminId }) {
   const [sent, setSent] = useState(null);
 
   const load = useCallback(async () => {
-    const s = await supabase.from('profiles').select('id, full_name, email, phone, is_admin').order('full_name');
-    setStudents((s.data || []).filter((x) => x.id !== adminId && !x.is_admin));
+    const s = await supabase.from('profiles').select('id, full_name, email, phone').order('full_name');
+    setStudents((s.data || []).filter((x) => x.id !== adminId));
     const r = await supabase.from('sent_payments').select('*').order('created_at', { ascending: false }).limit(30);
     if (r.error) setMsg({ err: true, t: 'Run supabase/sent_payments.sql in the Supabase SQL Editor first.' });
     setRows(r.data || []);

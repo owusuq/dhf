@@ -386,7 +386,7 @@ export default function Admin() {
 
   function csv() {
     const head = 'Name,Email,Phone,Level,Birthday,Option,Fees,Paid,Balance,Feeding plan,Next payment';
-    const body = rows.filter((s) => !s.is_admin).map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, (s.fees_owing != null ? s.fees_owing : s.fees_total - s.paid), s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
+    const body = rows.map((s) => [s.full_name, s.email, s.phone, s.level, s.birthday, s.payment_option, s.fees_total, s.paid, (s.fees_owing != null ? s.fees_owing : s.fees_total - s.paid), s.plan, fmt(s.next)].map((v) => `"${v ?? ''}"`).join(','));
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([[head, ...body].join('\n')], { type: 'text/csv' }));
     a.download = 'students.csv';
@@ -394,9 +394,9 @@ export default function Admin() {
   }
   if (!rows) return <div className="wrap"><Skeleton lines={5} /></div>;
 
-  const soon = rows.filter((s) => s.status === 'soon' && !s.is_admin);
+  const soon = rows.filter((s) => s.status === 'soon');
   const isHidden = (s) => s.lastDue && dismissed[s.id] === s.lastDue.toISOString().slice(0, 10);
-  const overdueAll = rows.filter((s) => s.status === 'overdue' && !s.is_admin);
+  const overdueAll = rows.filter((s) => s.status === 'overdue');
   const overdue = overdueAll.filter((s) => !isHidden(s));
   const hidden = overdueAll.length - overdue.length;
   const name = (s) => s.full_name || s.email;
@@ -452,11 +452,11 @@ export default function Admin() {
             <thead><tr><th>Name</th><th>Email</th><th>Level</th><th>Phone</th><th>Birthday</th><th>Fees</th><th>Paid</th><th>Balance</th><th>Feeding plan</th><th>Next payment</th><th>Access</th><th>Details</th></tr></thead>
             <tbody>
               {rows.map((s) => (
-                <tr key={s.id}><td data-label="Name">{name(s)}</td><td data-label="Email">{s.email}</td><td data-label="Level">{s.level}</td><td data-label="Phone">{s.phone}</td><td data-label="Birthday">{s.birthday}</td>
-                  <td data-label="Fees">{s.fees_total}</td><td data-label="Paid">{s.paid}</td><td data-label="Balance">{s.fees_owing != null ? s.fees_owing : Math.max(0, s.fees_total - s.paid)}</td>
-                  <td data-label="Feeding plan">{s.plan || 'Not set'}</td><td data-label="Next payment">{fmt(s.next)}</td>
-                  <td data-label="Access">{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
-                  <td data-label="Details"><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
+                <tr key={s.id}><td>{name(s)}</td><td>{s.email}</td><td>{s.level}</td><td>{s.phone}</td><td>{s.birthday}</td>
+                  <td>{s.fees_total}</td><td>{s.paid}</td><td>{s.fees_owing != null ? s.fees_owing : Math.max(0, s.fees_total - s.paid)}</td>
+                  <td>{s.plan || 'Not set'}</td><td>{fmt(s.next)}</td>
+                  <td>{s.id === meId ? <small>You (admin)</small> : <button className={'btn sm ' + (s.is_admin ? 'del' : 'alt')} onClick={() => toggleAdmin(s)}>{s.is_admin ? 'Remove admin' : 'Make admin'}</button>}</td>
+                  <td><button className="btn sm" onClick={() => { setEditing(s.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button></td></tr>
               ))}
             </tbody>
           </table>
