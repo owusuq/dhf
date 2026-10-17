@@ -35,6 +35,8 @@ function Pill({ status }) {
 
 function AppCard({ a, onChange, onDelete }) {
   const [custom, setCustom] = useState(null);
+  const [pw, setPw] = useState('');
+  const [copiedWhat, setCopiedWhat] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const first = (a.name || 'student').split(' ')[0];
@@ -44,6 +46,36 @@ function AppCard({ a, onChange, onDelete }) {
   const text = custom ?? (a.status === 'accepted' ? acceptMsg : declineMsg);
   const phone = intl(a.phone);
   const subject = `Your ${a.program} application`;
+
+  // A random password made in this browser. It is shown once here and is never saved in the database.
+  function makePassword() {
+    const set = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    for (;;) {
+      const out = [];
+      while (out.length < 12) {
+        const b = new Uint8Array(1);
+        crypto.getRandomValues(b);
+        if (b[0] < 216) out.push(set[b[0] % set.length]); // 216 = 54 * 4, so every character is equally likely
+      }
+      const p = out.join('');
+      if (/[A-Z]/.test(p) && /[a-z]/.test(p) && /[0-9]/.test(p)) return p;
+    }
+  }
+
+  function generate() {
+    const p = makePassword();
+    setPw(p);
+    let base = custom ?? acceptMsg;
+    const i = base.indexOf('\n\nYour login details:');
+    if (i >= 0) base = base.slice(0, i);
+    setCustom(base + '\n\nYour login details:\nWebsite: ' + window.location.origin + '\nEmail: ' + a.email + '\nPassword: ' + p + '\nYou can change the password later with Forgot password on the login page.');
+  }
+
+  async function copyText(label, value) {
+    try { await navigator.clipboard.writeText(value); } catch (e) { /* ignore */ }
+    setCopiedWhat(label);
+    setTimeout(() => setCopiedWhat(''), 1500);
+  }
 
   async function decide(status) {
     setBusy(true);
@@ -77,8 +109,8 @@ function AppCard({ a, onChange, onDelete }) {
         <b>{a.name || '(no name)'}</b>
         <Pill status={a.status} />
       </div>
-      <p><small>{a.level || 'Level not set'} · applied {day(a.created_at)}{a.src === 'join' ? ' · via application link' : ''}</small></p>
-      <p><small>{a.email}{phone ? ' · ' + phone : ''}</small></p>
+      <p><small>{a.level || 'Level not set'} &middot; applied {day(a.created_at)}{a.src === 'join' ? ' \u00B7 via application link' : ''}</small></p>
+      <p><small>{a.email}{phone ? ' \u00B7 ' + phone : ''}</small></p>
       <p><small>Why they want to join</small><br />{a.reason}</p>
       {err && <div className="msg err">{err}</div>}
 
@@ -93,6 +125,22 @@ function AppCard({ a, onChange, onDelete }) {
         <>
           <label htmlFor={'m' + a.id}>Message to send (you can edit it)</label>
           <textarea id={'m' + a.id} rows={6} value={text} onChange={(e) => setCustom(e.target.value)} />
+          {a.status === 'accepted' && a.src === 'join' && a.email && (
+            <div style={{ border: '1px solid #d9dee5', borderRadius: 10, padding: '10px 12px', margin: '10px 0' }}>
+              <p style={{ margin: '0 0 6px' }}><b>Login details for this person</b></p>
+              <p style={{ margin: '0 0 8px' }}><small>Make a password, add it to the message above, then create the user in Supabase with the same email and password.</small></p>
+              <p style={{ margin: '0 0 8px' }}>
+                <button type="button" className="btn sm" onClick={generate}>{pw ? 'Make a different password' : 'Generate password'}</button>
+              </p>
+              {pw && (
+                <>
+                  <p style={{ margin: '0 0 4px' }}>Email: <b>{a.email}</b> <button type="button" className="btn alt sm" onClick={() => copyText('email', a.email)}>{copiedWhat === 'email' ? 'Copied' : 'Copy'}</button></p>
+                  <p style={{ margin: '0 0 8px' }}>Password: <b style={{ fontFamily: 'monospace', fontSize: '1.05rem' }}>{pw}</b> <button type="button" className="btn alt sm" onClick={() => copyText('password', pw)}>{copiedWhat === 'password' ? 'Copied' : 'Copy'}</button></p>
+                  <p style={{ margin: 0 }}><small>In Supabase: Authentication, then Users, then Add user, then Create new user. Paste the email and password and tick Auto Confirm User. This password is not saved anywhere, so copy it before you leave this page.</small></p>
+                </>
+              )}
+            </div>
+          )}
           <p className="remind">
             {phone && <a className="btn sm" href={`https://wa.me/${phone.replace('+', '')}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">WhatsApp</a>}{' '}
             {phone && <a className="btn alt sm" href={`sms:${phone}?body=${encodeURIComponent(text)}`}>SMS</a>}{' '}
@@ -166,7 +214,7 @@ export default function Applications() {
         <h2>Applications</h2>
         <p>
           <Link className="btn alt sm" href="/admin">Back to admin</Link>{' '}
-          <button type="button" className="btn sm" onClick={copyLink}>{copied ? 'Link copied ✓' : 'Copy application link'}</button>
+          <button type="button" className="btn sm" onClick={copyLink}>{copied ? 'Link copied' : 'Copy application link'}</button>
         </p>
         <div className="choice">
           {tabs.map(([k, label]) => (
@@ -180,7 +228,7 @@ export default function Applications() {
         )}
         {err && <div className="msg err">{err}</div>}
         {rows === null && !err && <Skeleton lines={3} />}
-        {rows && list.length === 0 && <Empty icon="📝" title="No applications here" />}
+        {rows && list.length === 0 && <Empty icon={'\uD83D\uDCDD'} title="No applications here" />}
       </section>
       {list.map((a) => (
         <AppCard key={a.src + a.id} a={a} onDelete={(id) => setRows((l) => l.filter((x) => !(x.id === id && x.src === a.src)))} onChange={(u) => setRows((l) => l.map((x) => (x.id === u.id && x.src === a.src ? { ...x, status: u.status, decided_at: u.decided_at } : x)))} />
