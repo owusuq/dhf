@@ -27,6 +27,9 @@ function nextPath() {
   } catch (e) { return null; }
 }
 
+// A real-looking email: something@domain.tld, no spaces, a dot in the domain, and a 2+ letter ending.
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
 async function destination(uid) {
   const next = nextPath();
   if (next) return next;
@@ -54,9 +57,10 @@ export default function Login() {
     setMsg(null);
     setBusy(true);
     try {
+      if (mode === 'up' && !EMAIL_RE.test(f.email.trim())) return setMsg({ err: true, t: 'That email address does not look right. Check it and try again, for example name@gmail.com.' });
       const res = mode === 'in'
         ? await supabase.auth.signInWithPassword({ email: f.email, password: f.password })
-        : await supabase.auth.signUp({ email: f.email, password: f.password, options: { data: { full_name: f.name } } });
+        : await supabase.auth.signUp({ email: f.email.trim().toLowerCase(), password: f.password, options: { data: { full_name: f.name } } });
       if (res.error) return setMsg({ err: true, t: res.error.message });
       if (mode === 'up' && !res.data.session) return setMsg({ t: 'Check your email to confirm your account, then sign in. After you sign in, you will go straight to the application form.' });
       router.replace(await destination(res.data.session.user.id));
@@ -136,7 +140,7 @@ export default function Login() {
               <>
                 <div className="gl-or"><span>or</span></div>
                 <div className="gl-quick">
-                  <button type="button" className="gl-btn gl-alt" onClick={startApply}>Apply to the Foundation</button>
+                  <button type="button" className="gl-btn gl-alt" onClick={() => router.push('/join')}>Apply to the Foundation</button>
                   <button type="button" className="gl-btn gl-alt" onClick={startResults}>View my results</button>
                 </div>
               </>
