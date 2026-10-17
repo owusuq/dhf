@@ -6,6 +6,9 @@ import { supabase } from '../../lib/supabase';
 // Change this one line to rename the programme everywhere on this page.
 const PROGRAM = 'Daakyehene Foundation';
 
+// A real-looking email: something@domain.tld, no spaces, a dot in the domain, and a 2+ letter ending.
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
+
 const blank = { name: '', phone: '', email: '', level: '', reason: '', website: '' };
 
 export default function Join() {
@@ -13,22 +16,26 @@ export default function Join() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState('');
+  const [bad, setBad] = useState('');
   const [copied, setCopied] = useState(false);
-  const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setErr(''); };
+  const set = (k) => (e) => { setF({ ...f, [k]: e.target.value }); setErr(''); setBad(''); };
+  const fail = (field, msg) => { setBad(field); setErr(msg); const el = document.getElementById('jn-' + field); if (el) el.focus(); };
 
   async function submit(e) {
     e.preventDefault();
     setErr('');
     if (f.website) { setSent(true); return; } // hidden field: bots fill it, people don't
-    if (f.name.trim().length < 2) return setErr('Enter your full name.');
-    if (f.phone.trim().length < 5) return setErr('Enter a phone number we can reach you on.');
-    if (f.reason.trim().length < 10) return setErr('Tell us a bit about why you want to join.');
+    if (f.name.trim().length < 2) return fail('n', 'Enter your full name.');
+    if (!f.email.trim()) return fail('e', 'Enter your email address.');
+    if (!EMAIL_RE.test(f.email.trim())) return fail('e', 'That email address does not look right. Check it and try again, for example name@gmail.com.');
+    if (f.phone.trim().length < 5) return fail('p', 'Enter a phone number we can reach you on.');
+    if (f.reason.trim().length < 10) return fail('r', 'Tell us a bit about why you want to join.');
     setBusy(true);
     const { error } = await supabase.from('join_applications').insert({
       program: PROGRAM,
       name: f.name.trim(),
       phone: f.phone.trim(),
-      email: f.email.trim() || null,
+      email: f.email.trim().toLowerCase(),
       level: f.level.trim() || null,
       reason: f.reason.trim(),
     });
@@ -58,22 +65,22 @@ export default function Join() {
       <section className="card">
         {sent ? (
           <>
-            <h2>Application received 🙏</h2>
+            <h2>Application received</h2>
             <p>Thank you for applying. The Foundation has your application and will contact you on the phone number you gave.</p>
             <p><Link className="btn alt" href="/">Back to home</Link></p>
           </>
         ) : (
-          <form onSubmit={submit}>
-            <label htmlFor="jn-n">Full name</label>
-            <input id="jn-n" required maxLength={120} value={f.name} onChange={set('name')} />
-            <label htmlFor="jn-p">Phone number (WhatsApp if possible)</label>
-            <input id="jn-p" type="tel" required maxLength={40} value={f.phone} onChange={set('phone')} />
-            <label htmlFor="jn-e">Email (optional)</label>
-            <input id="jn-e" type="email" maxLength={120} value={f.email} onChange={set('email')} />
+          <form onSubmit={submit} noValidate>
+            <label htmlFor="jn-n">Full name (required)</label>
+            <input id="jn-n" required aria-invalid={bad === 'n'} maxLength={120} value={f.name} onChange={set('name')} />
+            <label htmlFor="jn-e">Email (required)</label>
+            <input id="jn-e" type="email" inputMode="email" autoComplete="email" required aria-invalid={bad === 'e'} maxLength={120} value={f.email} onChange={set('email')} placeholder="name@gmail.com" />
+            <label htmlFor="jn-p">Phone number, WhatsApp if possible (required)</label>
+            <input id="jn-p" type="tel" required aria-invalid={bad === 'p'} maxLength={40} value={f.phone} onChange={set('phone')} />
             <label htmlFor="jn-l">Level or school (optional)</label>
             <input id="jn-l" maxLength={120} value={f.level} onChange={set('level')} placeholder="e.g. Level 200, KTU" />
-            <label htmlFor="jn-r">Why do you want to join?</label>
-            <textarea id="jn-r" rows={5} required maxLength={1500} value={f.reason} onChange={set('reason')} placeholder="Tell us a bit about yourself" />
+            <label htmlFor="jn-r">Why do you want to join? (required)</label>
+            <textarea id="jn-r" rows={5} required aria-invalid={bad === 'r'} maxLength={1500} value={f.reason} onChange={set('reason')} placeholder="Tell us a bit about yourself" />
             <input
               tabIndex={-1}
               autoComplete="off"
@@ -83,7 +90,7 @@ export default function Join() {
               onChange={set('website')}
             />
             {err && <div className="msg err">{err}</div>}
-            <p><button className="btn" disabled={busy}>{busy ? 'Sending…' : 'Submit application'}</button></p>
+            <p><button className="btn" disabled={busy}>{busy ? 'Sending...' : 'Submit application'}</button></p>
           </form>
         )}
       </section>
@@ -92,7 +99,7 @@ export default function Join() {
         <h2>Share this link</h2>
         <p>
           <a className="btn" href={'https://wa.me/?text=' + encodeURIComponent('Apply to the Daakyehene Foundation here: ' + (typeof window !== 'undefined' ? window.location.origin : '') + '/join')} target="_blank" rel="noopener noreferrer">Share on WhatsApp</a>{' '}
-          <button type="button" className="btn alt" onClick={copy}>{copied ? 'Link copied ✓' : 'Copy link'}</button>
+          <button type="button" className="btn alt" onClick={copy}>{copied ? 'Link copied' : 'Copy link'}</button>
         </p>
       </section>
     </main>
